@@ -101,28 +101,6 @@ export default function Offerings() {
     }
   }
 
-  async function handleSelectSession(session: Session) {
-    setSelectedSession(session)
-    setSaved(false)
-    const existing = await getOffering(session.id)
-    if (existing) {
-      setForm({
-        member_tithe: existing.member_tithe,
-        ministers_tithe: existing.ministers_tithe,
-        sunday_love_offering: existing.sunday_love_offering,
-        monthly_thanksgiving: existing.monthly_thanksgiving,
-        gospel_fund: existing.gospel_fund,
-        first_fruit: existing.first_fruit,
-        crm: existing.crm,
-        children_offering: existing.children_offering,
-        house_fellowship: existing.house_fellowship,
-        first_born_redemption: existing.first_born_redemption,
-      })
-    } else {
-      setForm(emptyOffering)
-    }
-  }
-
   async function handleSave() {
     if (!selectedSession) return
     setSaving(true)
