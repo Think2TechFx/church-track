@@ -16,7 +16,7 @@ export default function CheckIn() {
   const [checkedInCount, setCheckedInCount] = useState(0)
   const qrRef = useRef<HTMLDivElement>(null)
 
-  const qrUrl = `${window.location.origin}/checkin-public`
+  const qrUrl = `${window.location.origin}${import.meta.env.BASE_URL}checkin-public`
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`
 
   useEffect(() => {
