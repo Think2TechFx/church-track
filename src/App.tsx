@@ -27,6 +27,7 @@ function AppContent() {
     }
   }, [navigate])
 
+  // force redeploy
   return (
     <Routes>
         {/* Splash */}
