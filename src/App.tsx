@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
 import Dashboard from './pages/Dashboard'
@@ -10,35 +9,21 @@ import Offerings from './pages/Offerings'
 import Reports from './pages/Reports'
 import PublicCheckIn from './pages/PublicCheckIn'
 import OfferingEntry from './pages/OfferingEntry'
-import Splash from './pages/Splash'
 import Welcome from './pages/Welcome'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import type { ChurchUser } from './lib/auth'
 
-function AppContent() {
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    const search = window.location.search
-    if (search.startsWith('?/')) {
-      const path = search.slice(2)
-      navigate(path, { replace: true })
-    }
-  }, [navigate])
-
-  // force redeploy
+function App() {
   return (
-    <Routes>
-        {/* Splash */}
-        <Route path="/splash" element={<Splash />} />
-
-        {/* Welcome / Auth */}
+    <BrowserRouter>
+      <Routes>
+        {/* Default route — go straight to welcome */}
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Public member check-in — no sidebar */}
+        {/* Public member check-in — no auth needed */}
         <Route path="/checkin-public" element={<PublicCheckIn />} />
 
         {/* Admin pages — protected */}
@@ -54,19 +39,13 @@ function AppContent() {
                   <Route path="/offerings" element={<Offerings />} />
                   <Route path="/offerings/:sessionId" element={<OfferingEntry />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </Layout>
             )}
           </AuthGuard>
         } />
       </Routes>
-  )
-}
-
-function App() {
-  return (
-    <BrowserRouter>
-      <AppContent />
     </BrowserRouter>
   )
 }
