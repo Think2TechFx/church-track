@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import Layout from './components/Layout'
 import AuthGuard from './components/AuthGuard'
 import Dashboard from './pages/Dashboard'
@@ -15,10 +16,19 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import type { ChurchUser } from './lib/auth'
 
-function App() {
+function AppContent() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const search = window.location.search
+    if (search.startsWith('?/')) {
+      const path = search.slice(2)
+      navigate(path, { replace: true })
+    }
+  }, [navigate])
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
         {/* Splash */}
         <Route path="/splash" element={<Splash />} />
 
@@ -49,6 +59,13 @@ function App() {
           </AuthGuard>
         } />
       </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
     </BrowserRouter>
   )
 }
