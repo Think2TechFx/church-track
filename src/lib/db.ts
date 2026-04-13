@@ -129,3 +129,12 @@ export async function getMemberByBibleNickname(nickname: string) {
   if (!data) return null
   return data as Member
 }
+
+// ─── CLEAR ALL DATA ───────────────────────────────────
+export async function clearAllData() {
+  // Delete in order to avoid foreign key issues
+  await supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000') // Delete all
+  await supabase.from('offerings').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await supabase.from('sessions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+  await supabase.from('members').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+}

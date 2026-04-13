@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getSessions, addSession } from '../lib/db'
 import type { Session, ServiceType } from '../types'
-import { Plus, Calendar, Printer } from 'lucide-react'
+import { Plus, Calendar, Printer, Download } from 'lucide-react'
+import jsPDF from 'jspdf'
+import QRCode from 'qrcode'
 
 const SERVICE_LABELS: Record<ServiceType, string> = {
   sunday: 'Sunday Service',
@@ -94,6 +96,24 @@ async function handleEndService(session: Session) {
     window.print()
   }
 
+  async function downloadQR(session: Session) {
+    const qrData = `checkin:${session.id}` // Encode session ID for check-in
+    const qrDataURL = await QRCode.toDataURL(qrData, { width: 200 })
+
+    const doc = new jsPDF()
+    doc.setFontSize(20)
+    doc.text('Check-in QR Code', 20, 30)
+    doc.setFontSize(12)
+    doc.text(`Service: ${SERVICE_LABELS[session.type]}`, 20, 45)
+    doc.text(`Date: ${session.date}`, 20, 55)
+    if (session.preacher) doc.text(`Preacher: ${session.preacher}`, 20, 65)
+
+    // Add QR code image
+    doc.addImage(qrDataURL, 'PNG', 20, 75, 50, 50)
+
+    doc.save(`checkin-qr-${session.date}.pdf`)
+  }
+
   return (
     <div className="p-8">
 
@@ -155,6 +175,13 @@ async function handleEndService(session: Session) {
                       >
                         <Printer size={12} />
                         Report
+                      </button>
+                      <button
+                        onClick={() => downloadQR(session)}
+                        className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors flex items-center gap-1"
+                      >
+                        <Download size={12} />
+                        QR PDF
                       </button>
                     </div>
                   </td>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getSessions, getMembers } from '../lib/db'
+import { getSessions, getMembers, clearAllData } from '../lib/db'
 import type { Member, Session } from '../types'
 import { Users, CalendarDays, TrendingUp, Baby } from 'lucide-react'
 
@@ -8,6 +8,7 @@ export default function Dashboard({ church }: { church: ChurchUser }) {
   const [members, setMembers] = useState<Member[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -38,6 +39,19 @@ export default function Dashboard({ church }: { church: ChurchUser }) {
     if (!m.date_of_birth) return false
     return new Date(m.date_of_birth).getMonth() === thisMonth
   })
+
+  async function handleClearData() {
+    if (confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
+      try {
+        await clearAllData()
+        alert('All data cleared successfully.')
+        window.location.reload() // Reload to refresh the dashboard
+      } catch (error) {
+        alert('Error clearing data: ' + (error as Error).message)
+      }
+    }
+    setShowClearConfirm(false)
+  }
 
   const SERVICE_LABELS: Record<string, string> = {
     sunday: 'Sunday Service',
@@ -212,6 +226,38 @@ export default function Dashboard({ church }: { church: ChurchUser }) {
           </div>
 
         </div>
+      </div>
+
+      {/* Admin Actions */}
+      <div className="mt-8 bg-gray-900 border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-sm font-semibold text-white mb-4">⚠️ Admin Actions</h3>
+        <button
+          onClick={() => setShowClearConfirm(true)}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+        >
+          Clear All Data
+        </button>
+        {showClearConfirm && (
+          <div className="mt-4 p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
+            <p className="text-red-400 text-sm mb-3">
+              This will permanently delete ALL members, sessions, attendance, and offerings data. This action cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleClearData}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+              >
+                Yes, Clear Everything
+              </button>
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
