@@ -130,6 +130,26 @@ export async function getMemberByBibleNickname(nickname: string) {
   return data as Member
 }
 
+// ─── DELETE FUNCTIONS ─────────────────────────────────
+export async function deleteMember(id: string) {
+  const { error } = await supabase
+    .from('members')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteSession(id: string) {
+  // Delete related records first
+  await supabase.from('attendance').delete().eq('session_id', id)
+  await supabase.from('offerings').delete().eq('session_id', id)
+  const { error } = await supabase
+    .from('sessions')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
 // ─── CLEAR ALL DATA ───────────────────────────────────
 export async function clearAllData() {
   // Delete in order to avoid foreign key issues

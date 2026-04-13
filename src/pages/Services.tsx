@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getSessions, addSession } from '../lib/db'
+import { getSessions, addSession, deleteSession } from '../lib/db'
 import type { Session, ServiceType } from '../types'
-import { Plus, Calendar, Printer, Download } from 'lucide-react'
+import { Plus, Calendar, Printer, Download, Trash2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import QRCode from 'qrcode'
 
@@ -114,6 +114,16 @@ async function handleEndService(session: Session) {
     doc.save(`checkin-qr-${session.date}.pdf`)
   }
 
+  async function handleDelete(session: Session) {
+    if (!confirm(`Delete ${SERVICE_LABELS[session.type]} on ${session.date}? This will remove all related attendance and offerings.`)) return
+    try {
+      await deleteSession(session.id)
+      setSessions((prev) => prev.filter((s) => s.id !== session.id))
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <div className="p-8">
 
@@ -182,6 +192,13 @@ async function handleEndService(session: Session) {
                       >
                         <Download size={12} />
                         QR PDF
+                      </button>
+                      <button
+                        onClick={() => handleDelete(session)}
+                        className="text-xs text-red-400 hover:text-red-300 underline underline-offset-2 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 size={12} />
+                        Delete
                       </button>
                     </div>
                   </td>

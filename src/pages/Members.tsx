@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMembers, addMember, updateMember } from '../lib/db'
+import { getMembers, addMember, updateMember, deleteMember } from '../lib/db'
 import { generateBibleNickname } from '../lib/bibleNickname'
 import type { Member, MemberRole, Sex, MaritalStatus } from '../types'
 import { UserPlus, Search, CheckCircle, XCircle, X } from 'lucide-react'
@@ -91,8 +91,7 @@ export default function Members() {
   async function handleRemove(member: Member) {
     if (!confirm(`Remove ${member.name} from the database? This cannot be undone.`)) return
     try {
-      const { supabase } = await import('../lib/supabase')
-      await supabase.from('members').delete().eq('id', member.id)
+      await deleteMember(member.id)
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
     } catch (e) {
       console.error(e)
