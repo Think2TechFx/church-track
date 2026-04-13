@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getMemberByPhone, getTodaySession, checkInMember, getAttendance, getMemberByBibleNickname } from '../lib/db'
+import { supabase } from '../lib/supabase'
 import type { Member, Session, Attendance } from '../types'
 
 export default function PublicCheckIn() {
@@ -15,6 +16,7 @@ export default function PublicCheckIn() {
   const [success, setSuccess] = useState(false)
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [streakMessage, setStreakMessage] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetchTodaySession()
@@ -28,20 +30,26 @@ export default function PublicCheckIn() {
         const att = await getAttendance(data.id)
         setAttendance(att)
       }
+    } catch (e) {
+      console.error('Session error:', e)
+      setError('Failed to load session. Please refresh.')
     } finally {
       setLoadingSession(false)
     }
   }
 
   async function getStreak(memberId: string): Promise<number> {
-    const { supabase } = await import('../lib/supabase')
-    const { data } = await supabase
-      .from('attendance')
-      .select('session_id')
-      .eq('member_id', memberId)
-      .order('checked_in_at', { ascending: false })
-      .limit(10)
-    return data?.length || 0
+    try {
+      const { data } = await supabase
+        .from('attendance')
+        .select('session_id')
+        .eq('member_id', memberId)
+        .order('checked_in_at', { ascending: false })
+        .limit(10)
+      return data?.length || 0
+    } catch {
+      return 0
+    }
   }
 
   function getStreakMessage(streak: number, name: string): string {
@@ -61,6 +69,7 @@ export default function PublicCheckIn() {
     setAlreadyCheckedIn(false)
     setSuccess(false)
     setStreakMessage('')
+    setError('')
 
     try {
       const member = isChildMode
@@ -78,6 +87,9 @@ export default function PublicCheckIn() {
         return
       }
       setFoundMember(member)
+    } catch (e) {
+      console.error('Search error:', e)
+      setError('Something went wrong. Please try again.')
     } finally {
       setSearching(false)
     }
@@ -96,7 +108,8 @@ export default function PublicCheckIn() {
       setNicknameInput('')
       setFoundMember(null)
     } catch (e) {
-      console.error(e)
+      console.error('Check-in error:', e)
+      setError('Check-in failed. Please try again.')
     }
   }
 
@@ -108,12 +121,33 @@ export default function PublicCheckIn() {
     setAlreadyCheckedIn(false)
     setSuccess(false)
     setStreakMessage('')
+    setError('')
   }
 
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Loading...</p>
+        <div className="text-center">
+          <div className="text-4xl mb-4">⛪</div>
+          <p className="text-gray-500 text-sm">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !session) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <p className="text-red-400 text-sm">{error}</p>
+          <button
+            onClick={() => { setError(''); fetchTodaySession() }}
+            className="mt-4 text-xs text-yellow-400 underline"
+          >
+            Tap to retry
+          </button>
+        </div>
       </div>
     )
   }
@@ -123,7 +157,7 @@ export default function PublicCheckIn() {
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
         <div className="text-center">
           <div className="text-5xl mb-4">✝</div>
-          <h1 className="text-xl font-bold text-white mb-2">Grace Assembly</h1>
+          <h1 className="text-xl font-bold text-white mb-2">CLOCK IT!</h1>
           <p className="text-gray-400 text-sm">No service is currently active.</p>
           <p className="text-gray-600 text-xs mt-2">Please check back during service time.</p>
         </div>
@@ -137,8 +171,8 @@ export default function PublicCheckIn() {
 
         {/* Church header */}
         <div className="text-center mb-8">
-          <div className="text-4xl mb-3">✝</div>
-          <h1 className="text-xl font-bold text-white">Grace Assembly</h1>
+          <div className="text-4xl mb-3">⛪</div>
+          <h1 className="text-xl font-bold text-green-400">CLOCK IT!</h1>
           <p className="text-sm text-yellow-400 mt-1">
             {session.special_name || {
               sunday: 'Sunday Service',
@@ -156,6 +190,13 @@ export default function PublicCheckIn() {
             })}
           </p>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4 text-center">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
 
         {/* Success state */}
         {success && (
@@ -252,7 +293,7 @@ export default function PublicCheckIn() {
             {/* Toggle adult/child */}
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => { setIsChildMode(false); setNicknameInput('') }}
+                onClick={() => { setIsChildMode(false); setNicknameInput(''); setError('') }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all border ${
                   !isChildMode
                     ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
@@ -262,7 +303,7 @@ export default function PublicCheckIn() {
                 Adult
               </button>
               <button
-                onClick={() => { setIsChildMode(true); setPhone(''); setNotFound(false) }}
+                onClick={() => { setIsChildMode(true); setPhone(''); setNotFound(false); setError('') }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all border ${
                   isChildMode
                     ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
@@ -285,7 +326,6 @@ export default function PublicCheckIn() {
                   onChange={(e) => setPhone(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-lg text-white text-center placeholder-gray-600 focus:outline-none focus:border-yellow-400/50 tracking-widest mb-4"
-                  autoFocus
                 />
               </>
             ) : (
@@ -300,7 +340,6 @@ export default function PublicCheckIn() {
                   onChange={(e) => setNicknameInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 text-lg text-white text-center placeholder-gray-600 focus:outline-none focus:border-yellow-400/50 tracking-widest mb-4"
-                  autoFocus
                 />
               </>
             )}
