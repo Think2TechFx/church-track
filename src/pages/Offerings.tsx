@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { X, Save } from 'lucide-react'
+import { X, Save, Download } from 'lucide-react'
 import DenominationInput from '../components/DenominationInput'
 import { getSessions, getOffering, upsertOffering } from '../lib/db'
 import type { Session, Offering } from '../types'
+import jsPDF from 'jspdf'
 
 const SERVICE_LABELS: Record<string, string> = {
   sunday: 'Sunday Service',
@@ -49,19 +50,16 @@ const emptyOffering = {
   first_born_redemption: 0,
 }
 
-function getQuarter(date: string) {
-  const month = new Date(date).getMonth()
-  return Math.floor(month / 3) + 1
+function getMonth(date: string) {
+  return new Date(date).getMonth() + 1
 }
 
-function getQuarterLabel(q: number, year: number) {
-  const ranges: Record<number, string> = {
-    1: 'Q1 (Jan – Mar)',
-    2: 'Q2 (Apr – Jun)',
-    3: 'Q3 (Jul – Sep)',
-    4: 'Q4 (Oct – Dec)',
-  }
-  return `${ranges[q]} ${year}`
+function getMonthLabel(m: number, year: number) {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+  return `${months[m - 1]} ${year}`
 }
 
 export default function Offerings() {
@@ -73,8 +71,8 @@ export default function Offerings() {
   const [saved, setSaved] = useState(false)
   const [showReport, setShowReport] = useState(false)
   const [reportData, setReportData] = useState<{ session: Session; offering: Offering }[]>([])
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('')
-  const [quarters, setQuarters] = useState<string[]>([])
+  const [selectedMonth, setSelectedMonth] = useState<string>('')
+  const [months, setMonths] = useState<string[]>([])
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -85,15 +83,15 @@ export default function Offerings() {
     try {
       const data = await getSessions()
       setSessions(data)
-      const qs = new Set<string>()
+      const ms = new Set<string>()
       data.forEach((s) => {
-        const q = getQuarter(s.date)
+        const m = getMonth(s.date)
         const y = new Date(s.date).getFullYear()
-        qs.add(`${y}-Q${q}`)
+        ms.add(`${y}-${String(m).padStart(2, '0')}`)
       })
-      const sorted = Array.from(qs).sort().reverse()
-      setQuarters(sorted)
-      if (sorted.length > 0) setSelectedQuarter(sorted[0])
+      const sorted = Array.from(ms).sort().reverse()
+      setMonths(sorted)
+      if (sorted.length > 0) setSelectedMonth(sorted[0])
     } catch (e) {
       console.error(e)
     } finally {
@@ -115,11 +113,11 @@ export default function Offerings() {
   }
 
   async function handleViewReport() {
-    if (!selectedQuarter) return
-    const [year, q] = selectedQuarter.split('-Q')
+    if (!selectedMonth) return
+    const [year, m] = selectedMonth.split('-')
     const filtered = sessions.filter((s) => {
       return (
-        getQuarter(s.date) === Number(q) &&
+        getMonth(s.date) === Number(m) &&
         new Date(s.date).getFullYear() === Number(year)
       )
     })
@@ -160,6 +158,38 @@ export default function Offerings() {
     return { collected, remitted, retained: collected - remitted }
   }
 
+  function downloadPDF() {
+    const { collected, remitted, retained } = getQuarterTotals()
+    const [year, m] = selectedMonth.split('-')
+    const monthName = getMonthLabel(Number(m), Number(year))
+
+    const doc = new jsPDF()
+    doc.setFontSize(20)
+    doc.text('Monthly Offerings Report', 20, 30)
+    doc.setFontSize(14)
+    doc.text(`Month: ${monthName}`, 20, 45)
+    doc.setFontSize(12)
+    doc.text(`Total Collected: ${formatNaira(collected)}`, 20, 60)
+    doc.text(`Total Remitted: ${formatNaira(remitted)}`, 20, 75)
+    doc.text(`Total Retained: ${formatNaira(retained)}`, 20, 90)
+
+    let y = 110
+    doc.text('Service Breakdown:', 20, y)
+    y += 10
+
+    reportData.forEach(({ session, offering }) => {
+      const coll = getTotalCollected(offering as any, session.type)
+      const rem = getTotalRemittance(offering as any, session.type)
+      const ret = coll - rem
+      doc.text(`${SERVICE_LABELS[session.type]} (${session.date}):`, 30, y)
+      y += 8
+      doc.text(`  Collected: ${formatNaira(coll)} | Remitted: ${formatNaira(rem)} | Retained: ${formatNaira(ret)}`, 30, y)
+      y += 10
+    })
+
+    doc.save(`monthly-offerings-${selectedMonth}.pdf`)
+  }
+
   function formatNaira(amount: number) {
     return '₦' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
@@ -172,20 +202,20 @@ export default function Offerings() {
         <div>
           <h2 className="text-2xl font-bold text-white">Offerings & Tithe</h2>
           <p className="text-sm text-gray-400 mt-1">
-            Select a service to record offerings · View quarterly reports
+            Select a service to record offerings · View monthly reports
           </p>
         </div>
         <div className="flex items-center gap-3">
           <select
-            value={selectedQuarter}
-            onChange={(e) => setSelectedQuarter(e.target.value)}
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
             className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400/50"
           >
-            {quarters.map((q) => {
-              const [year, qNum] = q.split('-Q')
+            {months.map((m) => {
+              const [year, mNum] = m.split('-')
               return (
-                <option key={q} value={q}>
-                  {getQuarterLabel(Number(qNum), Number(year))}
+                <option key={m} value={m}>
+                  {getMonthLabel(Number(mNum), Number(year))}
                 </option>
               )
             })}
@@ -194,7 +224,7 @@ export default function Offerings() {
             onClick={handleViewReport}
             className="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all"
           >
-            Quarterly Report
+            Monthly Report
           </button>
         </div>
       </div>
@@ -312,7 +342,7 @@ export default function Offerings() {
         </div>
       )}
 
-      {/* Quarterly Report Modal */}
+      {/* Monthly Report Modal */}
       {showReport && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -322,15 +352,24 @@ export default function Offerings() {
               <div>
                 <h2 className="text-lg font-bold text-gray-900">✝ Grace Assembly</h2>
                 <p className="text-sm text-gray-500">
-                  Quarterly Offering Report · {selectedQuarter.replace('-Q', ' Q')}
+                  Monthly Offering Report · {getMonthLabel(Number(selectedMonth.split('-')[1]), Number(selectedMonth.split('-')[0]))}
                 </p>
               </div>
-              <button
-                onClick={() => setShowReport(false)}
-                className="text-gray-400 hover:text-gray-900 transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={downloadPDF}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm"
+                >
+                  <Download size={14} />
+                  Download PDF
+                </button>
+                <button
+                  onClick={() => setShowReport(false)}
+                  className="text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {reportData.length === 0 ? (
