@@ -150,10 +150,10 @@ export default function Offerings() {
 
   function getQuarterTotals() {
     const collected = reportData.reduce(
-      (a, { session, offering }) => a + getTotalCollected(offering as any, session.type), 0
+      (a, { session, offering }) => a + (offering ? getTotalCollected(offering, session.type) : 0), 0
     )
     const remitted = reportData.reduce(
-      (a, { session, offering }) => a + getTotalRemittance(offering as any, session.type), 0
+      (a, { session, offering }) => a + (offering ? getTotalRemittance(offering, session.type) : 0), 0
     )
     return { collected, remitted, retained: collected - remitted }
   }
@@ -178,8 +178,8 @@ export default function Offerings() {
     y += 10
 
     reportData.forEach(({ session, offering }) => {
-      const coll = getTotalCollected(offering as any, session.type)
-      const rem = getTotalRemittance(offering as any, session.type)
+      const coll = offering ? getTotalCollected(offering, session.type) : 0
+      const rem = offering ? getTotalRemittance(offering, session.type) : 0
       const ret = coll - rem
       doc.text(`${SERVICE_LABELS[session.type]} (${session.date}):`, 30, y)
       y += 8
@@ -382,9 +382,9 @@ export default function Offerings() {
                 <div className="space-y-4 mb-6">
                   {reportData.map(({ session, offering }) => {
                     const fields = getActiveFields(session.type)
-                    const collected = getTotalCollected(offering as any, session.type)
-                    const remitted = getTotalRemittance(offering as any, session.type)
-                    const retained = getTotalRetained(offering as any, session.type)
+                    const collected = offering ? getTotalCollected(offering, session.type) : 0
+                    const remitted = offering ? getTotalRemittance(offering, session.type) : 0
+                    const retained = offering ? getTotalRetained(offering, session.type) : 0
                     return (
                       <div key={session.id} className="border border-gray-100 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -412,7 +412,7 @@ export default function Offerings() {
                           </thead>
                           <tbody>
                             {fields.map((field) => {
-                              const amt = Number((offering as any)[field.key])
+                              const amt = offering ? Number(offering[field.key as keyof Offering]) : 0
                               if (amt === 0) return null
                               return (
                                 <tr key={field.key} className="border-b border-gray-50">

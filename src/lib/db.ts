@@ -158,3 +158,11 @@ export async function clearAllData() {
   await supabase.from('sessions').delete().neq('id', '00000000-0000-0000-0000-000000000000')
   await supabase.from('members').delete().neq('id', '00000000-0000-0000-0000-000000000000')
 }
+
+export async function getExistingNicknames(): Promise<string[]> {
+  const { data } = await supabase
+    .from('members')
+    .select('bible_nickname')
+    .not('bible_nickname', 'is', null)
+  return data?.map((d) => d.bible_nickname).filter(Boolean) || []
+}

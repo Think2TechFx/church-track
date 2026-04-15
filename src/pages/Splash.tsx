@@ -15,7 +15,7 @@ export default function Splash() {
       }
     }, 2500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [navigate])
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">

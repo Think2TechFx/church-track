@@ -18,10 +18,11 @@ export default function AuthGuard({ children }: Props) {
     if (!session) {
       navigate('/welcome', { replace: true })
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChurch(session)
     }
     setChecking(false)
-  }, [location.pathname])
+  }, [location.pathname, navigate])
 
   if (checking) {
     return (

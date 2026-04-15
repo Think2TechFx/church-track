@@ -58,8 +58,8 @@ export default function Register() {
       const church = await registerChurch(form)
       saveSession(church)
       navigate('/')
-    } catch (e: any) {
-      setError(e.message || 'Something went wrong')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMembers, addMember, updateMember, deleteMember } from '../lib/db'
+import { getMembers, addMember, updateMember, deleteMember, getExistingNicknames } from '../lib/db'
 import { generateBibleNickname } from '../lib/bibleNickname'
 import type { Member, MemberRole, Sex, MaritalStatus } from '../types'
 import { UserPlus, Search, CheckCircle, XCircle, X } from 'lucide-react'
@@ -59,14 +59,16 @@ export default function Members() {
         phone: form.sex === 'Children' ? `CHILD-${Date.now()}` : form.phone,
         role: form.sex === 'Children' ? 'Member' as MemberRole : form.role,
         marital_status: form.sex === 'Children' ? undefined : form.marital_status,
-        bible_nickname: form.sex === 'Children' ? generateBibleNickname(form.name) : undefined,
+        bible_nickname: form.sex === 'Children' 
+          ? generateBibleNickname(form.name, await getExistingNicknames()) 
+          : undefined,
       }
       const newMember = await addMember(payload)
       setMembers((prev) => [...prev, newMember])
       setShowModal(false)
       setForm(emptyForm)
-    } catch (e: any) {
-      setError(e.message || 'Something went wrong')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -81,8 +83,8 @@ export default function Members() {
       setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)))
       setEditMember(null)
       setEditForm({})
-    } catch (e: any) {
-      setError(e.message || 'Something went wrong')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -159,7 +161,7 @@ export default function Members() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-semibold px-4 py-2.5 rounded-lg text-sm transition-all"
+          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg text-sm transition-all"
         >
           <UserPlus size={16} />
           Add Member
@@ -189,7 +191,7 @@ export default function Members() {
           placeholder="Search by name or phone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400/50"
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-400"
         />
       </div>
 

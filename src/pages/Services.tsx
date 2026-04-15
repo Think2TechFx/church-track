@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { getSessions, addSession, deleteSession } from '../lib/db'
-import type { Session, ServiceType } from '../types'
+import { getSessions, addSession, deleteSession, getMembers } from '../lib/db'
+import type { Session, ServiceType, Attendance, Member } from '../types'
+
+type AttendanceWithMember = Attendance & { members: Member | null }
 import { Plus, Calendar, Printer, Download, Trash2 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import QRCode from 'qrcode'
@@ -39,7 +41,8 @@ export default function Services() {
   const [error, setError] = useState('')
   const [endingSession, setEndingSession] = useState<Session | null>(null)
   const [showReport, setShowReport] = useState<Session | null>(null)
-  const [reportAttendance, setReportAttendance] = useState<any[]>([])
+  const [reportAttendance, setReportAttendance] = useState<AttendanceWithMember[]>([])
+  const [reportNonAttendees, setReportNonAttendees] = useState<Member[]>([])
 
   useEffect(() => {
     fetchSessions()
@@ -72,8 +75,8 @@ export default function Services() {
       setSessions((prev) => [newSession, ...prev])
       setShowModal(false)
       setForm(emptyForm)
-    } catch (e: any) {
-      setError(e.message || 'Something went wrong')
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {
       setSaving(false)
     }
@@ -83,12 +86,19 @@ async function handleEndService(session: Session) {
   setEndingSession(null)
   setShowReport(null)
   setReportAttendance([])
+  setReportNonAttendees([])
   const { supabase } = await import('../lib/supabase')
   const { data } = await supabase
     .from('attendance')
     .select('*, members(*)')
     .eq('session_id', session.id)
-  setReportAttendance(data || [])
+  const attendance = data || []
+  setReportAttendance(attendance)
+  const allMembers = await getMembers()
+  const activeMembers = allMembers.filter(m => m.active)
+  const attendeesIds = new Set(attendance.map(a => a.member_id))
+  const nonAttendees = activeMembers.filter(m => !attendeesIds.has(m.id))
+  setReportNonAttendees(nonAttendees)
   setShowReport(session)
 }
 
@@ -387,6 +397,33 @@ async function handleEndService(session: Session) {
                           minute: '2-digit',
                         })}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Non-attendees list */}
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 mt-6">
+              Members Not in Service ({reportNonAttendees.length})
+            </h3>
+            {reportNonAttendees.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">All active members attended</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-2 text-xs text-gray-500 font-medium">#</th>
+                    <th className="text-left py-2 text-xs text-gray-500 font-medium">Name</th>
+                    <th className="text-left py-2 text-xs text-gray-500 font-medium">Phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportNonAttendees.map((member, i) => (
+                    <tr key={member.id} className="border-b border-gray-100">
+                      <td className="py-2 text-gray-400">{i + 1}</td>
+                      <td className="py-2 text-gray-900 font-medium">{member.name}</td>
+                      <td className="py-2 text-gray-500">{member.phone}</td>
                     </tr>
                   ))}
                 </tbody>

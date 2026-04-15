@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getSessions, getOffering, upsertOffering } from '../lib/db'
 import DenominationInput from '../components/DenominationInput'
@@ -57,11 +57,7 @@ export default function OfferingEntry() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  useEffect(() => {
-    loadData()
-  }, [sessionId])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     const sessions = await getSessions()
     const found = sessions.find((s) => s.id === sessionId)
     if (!found) return
@@ -81,7 +77,11 @@ export default function OfferingEntry() {
         first_born_redemption: existing.first_born_redemption,
       })
     }
-  }
+  }, [sessionId])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   function getActiveFields(type: string) {
     return type === 'sunday' ? SUNDAY_FIELDS : WEEKLY_FIELDS
