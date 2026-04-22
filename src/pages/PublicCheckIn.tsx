@@ -124,6 +124,17 @@ export default function PublicCheckIn() {
     setError('')
   }
 
+  const parishName = session?.parish_name || 'CLOCK IT!'
+
+  const serviceLabel = session ? (
+    session.special_name || {
+      sunday: 'Sunday Service',
+      tuesday: 'Digging Deep',
+      thursday: 'Faith Clinic',
+      special: session.special_name || 'Special Program',
+    }[session.type] || 'Service'
+  ) : ''
+
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -156,8 +167,8 @@ export default function PublicCheckIn() {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="text-5xl mb-4">✝</div>
-          <h1 className="text-xl font-bold text-white mb-2">CLOCK IT!</h1>
+          <div className="text-5xl mb-4">⛪</div>
+          <h1 className="text-xl font-bold text-green-400 mb-1">CLOCK IT!</h1>
           <p className="text-gray-400 text-sm">No service is currently active.</p>
           <p className="text-gray-600 text-xs mt-2">Please check back during service time.</p>
         </div>
@@ -172,15 +183,9 @@ export default function PublicCheckIn() {
         {/* Church header */}
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">⛪</div>
-          <h1 className="text-xl font-bold text-green-400">CLOCK IT!</h1>
-          <p className="text-sm text-yellow-400 mt-1">
-            {session.special_name || {
-              sunday: 'Sunday Service',
-              tuesday: 'Digging Deep',
-              thursday: 'Faith Clinic',
-              special: session.special_name,
-            }[session.type]}
-          </p>
+          <h1 className="text-xl font-bold text-green-400">{parishName}</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Powered by CLOCK IT!</p>
+          <p className="text-sm text-yellow-400 mt-2">{serviceLabel}</p>
           <p className="text-xs text-gray-500 mt-1">
             {new Date().toLocaleDateString('en-NG', {
               weekday: 'long',
@@ -293,7 +298,11 @@ export default function PublicCheckIn() {
             {/* Toggle adult/child */}
             <div className="flex gap-2 mb-4">
               <button
-                onClick={() => { setIsChildMode(false); setNicknameInput(''); setError('') }}
+                onClick={() => {
+                  setIsChildMode(false)
+                  setNicknameInput('')
+                  setError('')
+                }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all border ${
                   !isChildMode
                     ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'
@@ -303,7 +312,12 @@ export default function PublicCheckIn() {
                 Adult
               </button>
               <button
-                onClick={() => { setIsChildMode(true); setPhone(''); setNotFound(false); setError('') }}
+                onClick={() => {
+                  setIsChildMode(true)
+                  setPhone('')
+                  setNotFound(false)
+                  setError('')
+                }}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all border ${
                   isChildMode
                     ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400'

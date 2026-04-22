@@ -29,6 +29,7 @@ export interface Session {
   female_count: number
   children_count: number
   notes?: string
+  parish_name?: string
   created_at: string
 }
 

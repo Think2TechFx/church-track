@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getSessions, addSession, deleteSession, getMembers } from '../lib/db'
+import { getSession } from '../lib/auth'
 import type { Session, ServiceType, Attendance, Member } from '../types'
 
 type AttendanceWithMember = Attendance & { members: Member | null }
@@ -71,7 +72,11 @@ export default function Services() {
     setSaving(true)
     setError('')
     try {
-      const newSession = await addSession(form)
+            const church = getSession()
+        const newSession = await addSession({
+          ...form,
+          parish_name: church?.parish_name || '',
+        })
       setSessions((prev) => [newSession, ...prev])
       setShowModal(false)
       setForm(emptyForm)
