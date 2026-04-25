@@ -72,11 +72,11 @@ export default function Services() {
     setSaving(true)
     setError('')
     try {
-            const church = getSession()
-        const newSession = await addSession({
-          ...form,
-          parish_name: church?.parish_name || '',
-        })
+      const church = getSession()
+      const newSession = await addSession({
+        ...form,
+        parish_name: church?.parish_name || '',
+      })
       setSessions((prev) => [newSession, ...prev])
       setShowModal(false)
       setForm(emptyForm)
