@@ -58,7 +58,7 @@ export default function Members() {
         ...form,
         phone: form.sex === 'Children' ? `CHILD-${Date.now()}` : form.phone,
         role: form.sex === 'Children' ? 'Member' as MemberRole : form.role,
-        marital_status: form.sex === 'Children' ? undefined : form.marital_status,
+        marital_status: form.sex === 'Children' ? 'Single' as MaritalStatus : form.marital_status,
         bible_nickname: form.sex === 'Children' 
           ? generateBibleNickname(form.name, await getExistingNicknames()) 
           : undefined,

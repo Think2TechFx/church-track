@@ -6,6 +6,19 @@ export type Sex = 'Male' | 'Female' | 'Children'
 
 export type MaritalStatus = 'Single' | 'Married' | 'Widowed'
 
+export interface Member {
+  id: string
+  name: string
+  phone: string
+  sex: Sex
+  role: MemberRole
+  marital_status?: MaritalStatus
+  date_of_birth?: string
+  bible_nickname?: string
+  active: boolean
+  created_at: string
+}
+
 export interface Session {
   id: string
   type: ServiceType
