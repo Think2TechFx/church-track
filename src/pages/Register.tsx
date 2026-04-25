@@ -18,21 +18,22 @@ export default function Register() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const [form, setForm] = useState({
-    country: 'Nigeria',
-    state: '',
-    province_hq: '',
-    zonal_hq: '',
-    area_hq: '',
-    parish_name: '',
-    regional_hq: '',
-    pastor_name: '',
-    pastor_email: '',
-    head_usher_name: '',
-    head_usher_email: '',
-    password: '',
-    confirm_password: '',
-  })
+const [form, setForm] = useState({
+  country: 'Nigeria',
+  state: '',
+  church_type: 'parish',
+  province_hq: '',
+  zonal_hq: '',
+  area_hq: '',
+  parish_name: '',
+  regional_hq: '',
+  pastor_name: '',
+  pastor_email: '',
+  head_usher_name: '',
+  head_usher_email: '',
+  password: '',
+  confirm_password: '',
+})
 
   const selectedProvince = form.province_hq
   const zones = selectedProvince ? Object.keys(PROVINCE_DATA[selectedProvince] || {}) : []
@@ -121,6 +122,22 @@ export default function Register() {
                   className={inputClass}
                 />
               </div>
+
+              <div>
+                <label className={labelClass}>Church Type *</label>
+                <select
+                  value={form.church_type}
+                  onChange={(e) => update('church_type', e.target.value)}
+                  className={inputClass}
+                >
+                <option value="parish">Parish</option>
+                <option value="area">Area HQ</option>
+                <option value="zonal">Zonal HQ</option>
+                <option value="provincial">Provincial HQ</option>
+                <option value="regional">Regional HQ</option>
+                <option value="national">National HQ</option>
+              </select>
+            </div>
 
               <div>
                 <label className={labelClass}>State *</label>

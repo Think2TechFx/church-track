@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { clearSession } from '../lib/auth'
+import { LayoutDashboard, Users, CalendarDays, HandCoins, BarChart3, ScanLine, LogOut, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 import type { ChurchUser } from '../lib/auth'
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/services', icon: <CalendarDays size={18} />, label: 'Services' },
   { to: '/offerings', icon: <HandCoins size={18} />, label: 'Offerings' },
   { to: '/reports', icon: <BarChart3 size={18} />, label: 'Reports' },
+  { to: '/settings', icon: <Settings size={18} />, label: 'Settings' }
 ]
 
 interface Props {

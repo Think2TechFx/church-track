@@ -6,18 +6,21 @@ export interface ChurchUser {
   pastor_name: string
   pastor_email: string
   head_usher_name: string
+  head_usher_email: string
   zonal_hq: string
   province_hq: string
   regional_hq: string
   area_hq: string
   country: string
   state: string
+  church_type: 'parish' | 'area' | 'zonal' | 'provincial' | 'regional' | 'national'
   verified: boolean
 }
 
 export async function registerChurch(data: {
   country: string
   state: string
+  church_type: string
   parish_name: string
   area_hq: string
   zonal_hq: string
@@ -29,7 +32,6 @@ export async function registerChurch(data: {
   head_usher_email: string
   password: string
 }) {
-  // Simple hash using btoa for demo — replace with proper hashing in production
   const password_hash = btoa(data.password)
 
   const { data: church, error } = await supabase
@@ -37,6 +39,7 @@ export async function registerChurch(data: {
     .insert({
       country: data.country,
       state: data.state,
+      church_type: data.church_type,
       parish_name: data.parish_name,
       area_hq: data.area_hq,
       zonal_hq: data.zonal_hq,
