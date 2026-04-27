@@ -10,9 +10,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from 'lucide-react'
 import { clearSession } from '../lib/auth'
-import { LayoutDashboard, Users, CalendarDays, HandCoins, BarChart3, ScanLine, LogOut, ChevronLeft, ChevronRight, Settings } from 'lucide-react'
 import type { ChurchUser } from '../lib/auth'
 
 const navItems = [
@@ -22,7 +22,7 @@ const navItems = [
   { to: '/services', icon: <CalendarDays size={18} />, label: 'Services' },
   { to: '/offerings', icon: <HandCoins size={18} />, label: 'Offerings' },
   { to: '/reports', icon: <BarChart3 size={18} />, label: 'Reports' },
-  { to: '/settings', icon: <Settings size={18} />, label: 'Settings' }
+  { to: '/settings', icon: <Settings size={18} />, label: 'Settings' },
 ]
 
 interface Props {
@@ -40,10 +40,10 @@ export default function Layout({ children, church }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-950 relative">
+    <div className="flex h-screen bg-gray-950 overflow-hidden">
 
-      {/* Sidebar */}
-      <aside className={`${collapsed ? 'w-16' : 'w-56'} bg-gray-900 border-r border-gray-800 flex flex-col transition-all duration-300 relative`}>
+      {/* Sidebar — fixed, never scrolls */}
+      <aside className={`${collapsed ? 'w-16' : 'w-56'} bg-gray-900 border-r border-gray-800 flex flex-col transition-all duration-300 relative flex-shrink-0`}>
 
         {/* Collapse toggle */}
         <button
@@ -54,7 +54,7 @@ export default function Layout({ children, church }: Props) {
         </button>
 
         {/* Logo */}
-        <div className={`border-b border-gray-800 ${collapsed ? 'p-3' : 'p-5'}`}>
+        <div className={`border-b border-gray-800 flex-shrink-0 ${collapsed ? 'p-3' : 'p-5'}`}>
           {collapsed ? (
             <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center mx-auto">
               <span className="text-green-400 font-bold text-xs">CI</span>
@@ -67,8 +67,8 @@ export default function Layout({ children, church }: Props) {
           )}
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1">
+        {/* Nav — scrollable if needed but sidebar stays fixed */}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -92,7 +92,7 @@ export default function Layout({ children, church }: Props) {
         </nav>
 
         {/* Logout */}
-        <div className={`p-3 border-t border-gray-800`}>
+        <div className="p-3 border-t border-gray-800 flex-shrink-0">
           <button
             onClick={handleLogout}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-red-400 transition-all w-full ${collapsed ? 'justify-center' : ''}`}
@@ -104,10 +104,11 @@ export default function Layout({ children, church }: Props) {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content — scrolls independently */}
       <main className="flex-1 overflow-auto">
         {children}
       </main>
+
     </div>
   )
 }
