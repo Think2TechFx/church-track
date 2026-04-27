@@ -11,8 +11,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Settings,
+  Sun,
+  Moon,
 } from 'lucide-react'
 import { clearSession } from '../lib/auth'
+import { getTheme, setTheme } from '../lib/theme'
 import type { ChurchUser } from '../lib/auth'
 
 const navItems = [
@@ -33,16 +36,23 @@ interface Props {
 export default function Layout({ children, church }: Props) {
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
+  const [theme, setThemeState] = useState<'dark' | 'light'>(getTheme())
 
   function handleLogout() {
     clearSession()
     navigate('/welcome')
   }
 
+  function toggleTheme() {
+    const newTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(newTheme)
+    setThemeState(newTheme)
+  }
+
   return (
     <div className="flex h-screen bg-gray-950 overflow-hidden">
 
-      {/* Sidebar — fixed, never scrolls */}
+      {/* Sidebar */}
       <aside className={`${collapsed ? 'w-16' : 'w-56'} bg-gray-900 border-r border-gray-800 flex flex-col transition-all duration-300 relative flex-shrink-0`}>
 
         {/* Collapse toggle */}
@@ -67,7 +77,7 @@ export default function Layout({ children, church }: Props) {
           )}
         </div>
 
-        {/* Nav — scrollable if needed but sidebar stays fixed */}
+        {/* Nav */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
@@ -91,6 +101,18 @@ export default function Layout({ children, church }: Props) {
           ))}
         </nav>
 
+        {/* Theme toggle */}
+        <div className="px-3 pb-1 flex-shrink-0">
+          <button
+            onClick={toggleTheme}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-all w-full ${collapsed ? 'justify-center' : ''}`}
+            title={collapsed ? 'Toggle Theme' : ''}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {!collapsed && <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+          </button>
+        </div>
+
         {/* Logout */}
         <div className="p-3 border-t border-gray-800 flex-shrink-0">
           <button
@@ -104,7 +126,7 @@ export default function Layout({ children, church }: Props) {
         </div>
       </aside>
 
-      {/* Main Content — scrolls independently */}
+      {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {children}
       </main>
