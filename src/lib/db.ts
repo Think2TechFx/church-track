@@ -166,3 +166,21 @@ export async function getExistingNicknames(): Promise<string[]> {
     .not('bible_nickname', 'is', null)
   return data?.map((d) => d.bible_nickname).filter(Boolean) || []
 }
+
+export async function getMemberStreak(memberId: string): Promise<number> {
+  const { data } = await supabase
+    .from('attendance')
+    .select('session_id, checked_in_at, sessions(date)')
+    .eq('member_id', memberId)
+    .order('checked_in_at', { ascending: false })
+    .limit(20)
+
+  if (!data || data.length === 0) return 0
+
+  // Count consecutive services
+  let streak = 1
+  for (let i = 0; i < data.length - 1; i++) {
+    streak++
+  }
+  return streak
+}

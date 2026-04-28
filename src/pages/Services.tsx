@@ -342,7 +342,9 @@ async function handleEndService(session: Session) {
 
             {/* Report Header */}
             <div className="text-center mb-6 border-b border-gray-200 pb-4">
-              <h1 className="text-xl font-bold text-gray-900">✝ Grace Assembly</h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                ✝ {getSession()?.parish_name || 'CLOCK IT!'}
+              </h1>
               <h2 className="text-lg font-semibold text-gray-700 mt-1">
                 {showReport.special_name || SERVICE_LABELS[showReport.type]}
               </h2>
@@ -353,7 +355,7 @@ async function handleEndService(session: Session) {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-4 gap-3 mb-6">
               <div className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900">{reportAttendance.length}</p>
                 <p className="text-xs text-gray-500 mt-1">Total Check-ins</p>
@@ -370,6 +372,13 @@ async function handleEndService(session: Session) {
                 </p>
                 <p className="text-xs text-pink-500 mt-1">Females</p>
               </div>
+            </div>
+
+            <div className="bg-yellow-50 rounded-xl p-3 text-center">
+              <p className="text-2xl font-bold text-yellow-700">
+                {reportAttendance.filter((a) => a.members?.sex === 'Children').length}
+              </p>
+              <p className="text-xs text-yellow-500 mt-1">Children</p>
             </div>
 
             {/* Attendance list */}
@@ -435,6 +444,88 @@ async function handleEndService(session: Session) {
               </table>
             )}
 
+            {/* Awards Section */}
+            {reportAttendance.length > 0 && (
+              <div className="mt-6 mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  🏆 Service Awards
+                </h3>
+                <div className="space-y-2">
+
+                  {/* First to arrive */}
+                  {(() => {
+                    const first = [...reportAttendance].sort(
+                      (a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime()
+                    )[0]
+                    return first ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 flex items-center gap-3">
+                        <span className="text-2xl">⏰</span>
+                        <div>
+                          <p className="text-xs font-bold text-yellow-700">EARLY BIRD AWARD</p>
+                          <p className="text-sm font-semibold text-gray-900">{first.members?.name}</p>
+                          <p className="text-xs text-gray-500">
+                            First to arrive at {new Date(first.checked_in_at).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+
+                  {/* Most faithful male */}
+                  {(() => {
+                    const topMale = [...reportAttendance]
+                      .filter(a => a.members?.sex === 'Male')
+                      .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime())[0]
+                    return topMale ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
+                        <span className="text-2xl">👑</span>
+                        <div>
+                          <p className="text-xs font-bold text-blue-700">FAITHFUL BROTHER AWARD</p>
+                          <p className="text-sm font-semibold text-gray-900">{topMale.members?.name}</p>
+                          <p className="text-xs text-gray-500">First male to arrive this service</p>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+
+                  {/* Most faithful female */}
+                  {(() => {
+                    const topFemale = [...reportAttendance]
+                      .filter(a => a.members?.sex === 'Female')
+                      .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime())[0]
+                    return topFemale ? (
+                      <div className="bg-pink-50 border border-pink-200 rounded-xl p-3 flex items-center gap-3">
+                        <span className="text-2xl">💎</span>
+                        <div>
+                          <p className="text-xs font-bold text-pink-700">FAITHFUL SISTER AWARD</p>
+                          <p className="text-sm font-semibold text-gray-900">{topFemale.members?.name}</p>
+                          <p className="text-xs text-gray-500">First female to arrive this service</p>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+
+                  {/* First child */}
+                  {(() => {
+                    const topChild = [...reportAttendance]
+                      .filter(a => a.members?.sex === 'Children')
+                      .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime())[0]
+                    return topChild ? (
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
+                        <span className="text-2xl">⭐</span>
+                        <div>
+                          <p className="text-xs font-bold text-green-700">SHINNING STAR AWARD</p>
+                          <p className="text-sm font-semibold text-gray-900">{topChild.members?.name}</p>
+                          <p className="text-xs text-gray-500">First child to arrive this service</p>
+                        </div>
+                      </div>
+                    ) : null
+                  })()}
+
+                </div>
+              </div>
+            )}
+            
             {/* Actions */}
             <div className="flex gap-3 mt-6 print:hidden">
               <button

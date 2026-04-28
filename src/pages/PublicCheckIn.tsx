@@ -54,12 +54,11 @@ export default function PublicCheckIn() {
 
   function getStreakMessage(streak: number, name: string): string {
     const first = name.split(' ')[0]
-    if (streak >= 10) return `🏆 Unstoppable ${first}! 10 services in a row — Heaven is proud of you!`
-    if (streak >= 5) return `🔥 On fire ${first}! 5 services straight — your consistency is inspiring!`
-    if (streak >= 3) return `⭐ Way to go ${first}! 3 services in a row — keep the fire burning!`
+    if (streak >= 10) return `🏆 LEGENDARY ${first.toUpperCase()}! 10 services straight — You are an absolute WARRIOR of faith! Heaven is giving you a standing ovation right now!`
+    if (streak >= 5) return `🔥 ON FIRE ${first}! 5 services in a row — The altars of Heaven are lighting up because of your consistency! Keep blazing!`
+    if (streak >= 3) return `⭐ FAITHFUL ${first}! 3 services straight — God sees your dedication and He is smiling! You're building something beautiful!`
     return ''
   }
-
   async function handleSearch() {
     const input = isChildMode ? nicknameInput.trim() : phone.trim()
     if (!input) return
