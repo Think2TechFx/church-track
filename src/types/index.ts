@@ -43,15 +43,31 @@ export interface Attendance {
 export interface Offering {
   id: string
   session_id: string
+  // Sunday categories
   member_tithe: number
   ministers_tithe: number
   sunday_love_offering: number
   monthly_thanksgiving: number
   gospel_fund: number
   first_fruit: number
-  crm: number
   children_offering: number
   house_fellowship: number
   first_born_redemption: number
+  // Weekly
+  crm: number
+  // Additional
+  mission: number
+  sunday_school: number
+  welfare: number
+  pastors_welfare: number
+  pastors_seed: number
+  rebate_20: number
+  admin: number
+  special_project: number
+  csr_run: number
+  insurance: number
+  others_1: number
+  others_2: number
+  others_3: number
   recorded_at: string
 }

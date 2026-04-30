@@ -41,6 +41,7 @@ function App() {
                   <Route path="/offerings" element={<Offerings />} />
                   <Route path="/offerings/:sessionId" element={<OfferingEntry />} />
                   <Route path="/reports" element={<Reports />} />
+                  <Route path="/quarterly-wrap" element={<QuarterlyWrap />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>

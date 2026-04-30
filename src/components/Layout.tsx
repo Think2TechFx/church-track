@@ -13,6 +13,7 @@ import {
   Settings,
   Sun,
   Moon,
+  Trophy,
 } from 'lucide-react'
 import { clearSession } from '../lib/auth'
 import { getTheme, setTheme } from '../lib/theme'
@@ -26,6 +27,7 @@ const navItems = [
   { to: '/offerings', icon: <HandCoins size={18} />, label: 'Offerings' },
   { to: '/reports', icon: <BarChart3 size={18} />, label: 'Reports' },
   { to: '/settings', icon: <Settings size={18} />, label: 'Settings' },
+  { to: '/quarterly-wrap', icon: <Trophy size={18} />, label: 'Wrap' },
 ]
 
 interface Props {
