@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getSessions, getOffering, upsertOffering } from '../lib/db'
 import DenominationInput from '../components/DenominationInput'
@@ -30,12 +30,12 @@ const SUNDAY_FIELDS: {
   { key: 'welfare', label: 'Welfare', remittance: 0.25 },
   { key: 'pastors_welfare', label: "Pastor's Welfare", remittance: 0 },
   { key: 'pastors_seed', label: "Pastor's Seed (1% Thanksgiving)", remittance: 0.01 },
+  { key: 'first_born_redemption', label: 'First Born Redemption', remittance: 1.00 },
   { key: 'rebate_20', label: '20% Rebate', remittance: 0 },
   { key: 'admin', label: 'Admin', remittance: 0 },
   { key: 'special_project', label: 'Special Project', remittance: 0 },
   { key: 'csr_run', label: 'CSR / RUN', remittance: 0 },
   { key: 'insurance', label: 'Insurance', remittance: 0 },
-  { key: 'first_born_redemption', label: 'First Born Redemption', remittance: 1.00 },
   { key: 'others_1', label: 'Others 1', remittance: 0 },
   { key: 'others_2', label: 'Others 2', remittance: 0 },
   { key: 'others_3', label: 'Others 3', remittance: 0 },
@@ -83,7 +83,11 @@ export default function OfferingEntry() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const loadData = useCallback(async () => {
+  useEffect(() => {
+    loadData()
+  }, [sessionId])
+
+  async function loadData() {
     const sessions = await getSessions()
     const found = sessions.find((s) => s.id === sessionId)
     if (!found) return
@@ -91,23 +95,32 @@ export default function OfferingEntry() {
     const existing = await getOffering(found.id)
     if (existing) {
       setForm({
-        member_tithe: existing.member_tithe,
-        ministers_tithe: existing.ministers_tithe,
-        sunday_love_offering: existing.sunday_love_offering,
-        monthly_thanksgiving: existing.monthly_thanksgiving,
-        gospel_fund: existing.gospel_fund,
-        first_fruit: existing.first_fruit,
-        crm: existing.crm,
-        children_offering: existing.children_offering,
-        house_fellowship: existing.house_fellowship,
-        first_born_redemption: existing.first_born_redemption,
+        member_tithe: existing.member_tithe || 0,
+        ministers_tithe: existing.ministers_tithe || 0,
+        sunday_love_offering: existing.sunday_love_offering || 0,
+        monthly_thanksgiving: existing.monthly_thanksgiving || 0,
+        gospel_fund: existing.gospel_fund || 0,
+        first_fruit: existing.first_fruit || 0,
+        crm: existing.crm || 0,
+        children_offering: existing.children_offering || 0,
+        house_fellowship: existing.house_fellowship || 0,
+        first_born_redemption: existing.first_born_redemption || 0,
+        mission: existing.mission || 0,
+        sunday_school: existing.sunday_school || 0,
+        welfare: existing.welfare || 0,
+        pastors_welfare: existing.pastors_welfare || 0,
+        pastors_seed: existing.pastors_seed || 0,
+        rebate_20: existing.rebate_20 || 0,
+        admin: existing.admin || 0,
+        special_project: existing.special_project || 0,
+        csr_run: existing.csr_run || 0,
+        insurance: existing.insurance || 0,
+        others_1: existing.others_1 || 0,
+        others_2: existing.others_2 || 0,
+        others_3: existing.others_3 || 0,
       })
     }
-  }, [sessionId])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  }
 
   function getActiveFields(type: string) {
     return type === 'sunday' ? SUNDAY_FIELDS : WEEKLY_FIELDS
@@ -116,11 +129,11 @@ export default function OfferingEntry() {
   function getTotalCollected() {
     if (!session) return 0
     const fields = getActiveFields(session.type)
-    return fields.reduce((a, field) => a + Number(form[field.key]), 0)
+    return fields.reduce((a, field) => a + Number(form[field.key as keyof typeof form] || 0), 0)
   }
 
   function formatNaira(amount: number) {
-    return '₦' + amount.toLocaleString('en-NG', {
+    return 'N' + amount.toLocaleString('en-NG', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -175,7 +188,7 @@ export default function OfferingEntry() {
           ? 'bg-yellow-400/10 text-yellow-400'
           : 'bg-blue-400/10 text-blue-400'
       }`}>
-        {session.type === 'sunday' ? '9 Offering Categories' : 'CRM Offering Only'}
+        {session.type === 'sunday' ? `${SUNDAY_FIELDS.length} Offering Categories` : 'CRM Offering Only'}
       </div>
 
       {/* Denomination inputs */}
@@ -185,7 +198,7 @@ export default function OfferingEntry() {
             key={field.key}
             label={field.label}
             remittancePct={field.remittance}
-            value={Number(form[field.key])}
+            value={Number(form[field.key as keyof typeof form])}
             onChange={(total) => setForm({ ...form, [field.key]: total })}
             showRemittance={false}
           />
