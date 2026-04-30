@@ -50,7 +50,21 @@ const emptyOffering = {
   children_offering: 0,
   house_fellowship: 0,
   first_born_redemption: 0,
+  mission: 0,
+  sunday_school: 0,
+  welfare: 0,
+  pastors_welfare: 0,
+  pastors_seed: 0,
+  rebate_20: 0,
+  admin: 0,
+  special_project: 0,
+  csr_run: 0,
+  insurance: 0,
+  others_1: 0,
+  others_2: 0,
+  others_3: 0,
 }
+
 
 function getMonth(date: string) {
   return new Date(date).getMonth() + 1
