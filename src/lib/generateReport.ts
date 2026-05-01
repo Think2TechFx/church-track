@@ -1,7 +1,14 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+
 import type { Session, Offering } from '../types'
 import type { ChurchUser } from './auth'
+
+// Fix for jspdf-autotable ESM compatibility
+if (typeof (autoTable as any).default === 'function') {
+  const _autoTable = (autoTable as any).default
+  Object.assign(autoTable, _autoTable)
+}
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -393,7 +400,7 @@ export async function generateMonthlyReport(
       11: { cellWidth: 20 },
       12: { cellWidth: 20 },
     },
-    didParseCell: (data) => {
+    didParseCell: (data: any) => {
       // Style the TOTAL row
       if (data.row.index === remittanceRows.length - 1) {
         data.cell.styles.fillColor = [200, 230, 200]
