@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getSessions, getOffering } from '../lib/db'
+import { getSession } from '../lib/auth'
+import { supabase } from '../lib/supabase'
 import { generateMonthlyReport } from '../lib/generateReport'
 import type { Session, Offering } from '../types'
-import type { ChurchUser } from '../lib/auth'
-import { getSession } from '../lib/auth'
 import { Download, FileText } from 'lucide-react'
 
 const MONTHS = [
@@ -15,14 +15,13 @@ export default function Reports() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [church, setChurch] = useState<ChurchUser | null>(null)
+  const [error, setError] = useState('')
   const today = new Date()
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth())
   const [selectedYear, setSelectedYear] = useState(today.getFullYear())
+  const church = getSession()
 
   useEffect(() => {
-    const session = getSession()
-    setChurch(session)
     fetchSessions()
   }, [])
 
@@ -40,9 +39,17 @@ export default function Reports() {
     return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear
   })
 
-  async function handleGenerateWithAttendance() {
-    if (!church) return
+  async function handleDownloadReport() {
+    if (!church) {
+      setError('No church session found. Please login again.')
+      return
+    }
+    if (monthSessions.length === 0) {
+      setError('No services found for this period.')
+      return
+    }
     setGenerating(true)
+    setError('')
     try {
       const offeringsMap: Record<string, Offering> = {}
       const attendanceMap: Record<string, { male: number; female: number; children: number }> = {}
@@ -51,7 +58,6 @@ export default function Reports() {
         const offering = await getOffering(session.id)
         if (offering) offeringsMap[session.id] = offering
 
-        const { supabase } = await import('../lib/supabase')
         const { data: att } = await supabase
           .from('attendance')
           .select('*, members(sex)')
@@ -64,15 +70,16 @@ export default function Reports() {
       }
 
       await generateMonthlyReport(
-        monthSessions,
+        sessions,
         offeringsMap,
         attendanceMap,
         church,
         selectedMonth,
         selectedYear
       )
-    } catch (e) {
+    } catch (e: any) {
       console.error('Report error:', e)
+      setError('Failed to generate report: ' + (e.message || 'Unknown error'))
     } finally {
       setGenerating(false)
     }
@@ -85,9 +92,30 @@ export default function Reports() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white">Reports</h2>
-          <p className="text-sm text-gray-400 mt-1">Generate monthly financial & attendance reports</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Download monthly attendance & remittance reports
+          </p>
         </div>
       </div>
+
+      {/* Church info banner */}
+      {church && (
+        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-400 mb-0.5">Report will be generated for</p>
+              <p className="text-white font-semibold">{church.parish_name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {church.zonal_hq} · {church.province_hq}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-400 mb-0.5">Pastor</p>
+              <p className="text-sm text-green-400 font-medium">{church.pastor_name}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Month/Year selector */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
@@ -120,6 +148,13 @@ export default function Reports() {
         </div>
       </div>
 
+      {/* Error */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-lg mb-4">
+          {error}
+        </div>
+      )}
+
       {/* Sessions preview */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
         <h3 className="text-white font-semibold mb-4">
@@ -132,7 +167,10 @@ export default function Reports() {
         ) : (
           <div className="space-y-2">
             {monthSessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+              <div
+                key={s.id}
+                className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${
                     s.type === 'sunday' ? 'bg-yellow-400' :
@@ -150,7 +188,9 @@ export default function Reports() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-400">{s.date}</p>
-                  {s.preacher && <p className="text-xs text-gray-600">{s.preacher}</p>}
+                  {s.preacher && (
+                    <p className="text-xs text-gray-600">{s.preacher}</p>
+                  )}
                 </div>
               </div>
             ))}
@@ -158,27 +198,39 @@ export default function Reports() {
         )}
       </div>
 
-      {/* Generate buttons */}
-      <div className="grid grid-cols-1 gap-4">
-        <button
-          onClick={handleGenerateWithAttendance}
-          disabled={generating || monthSessions.length === 0}
-          className="flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 disabled:opacity-50 text-white font-semibold px-6 py-4 rounded-2xl text-sm transition-all"
-        >
-          <Download size={18} />
-          {generating ? 'Generating PDF...' : `Download ${MONTHS[selectedMonth]} ${selectedYear} Report`}
-        </button>
+      {/* Download button */}
+      <button
+        onClick={handleDownloadReport}
+        disabled={generating || monthSessions.length === 0}
+        className="w-full flex items-center justify-center gap-3 bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-4 rounded-2xl text-sm transition-all"
+      >
+        <Download size={18} />
+        {generating
+          ? 'Generating PDF...'
+          : `Download ${MONTHS[selectedMonth]} ${selectedYear} Report`}
+      </button>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4">
-          <div className="flex items-start gap-3">
-            <FileText size={16} className="text-gray-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-gray-400 font-medium">Report includes:</p>
-              <p className="text-xs text-gray-600 mt-1">
-                Weekly breakdown (Digging Deep, Faith Clinic, Sunday Service) · 
-                Full offering categories with remittance · 
-                Attendance per service (Male, Female, Children) · 
-                Special programs · Monthly totals · Parish header
+      {/* What's included */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mt-4">
+        <div className="flex items-start gap-3">
+          <FileText size={16} className="text-gray-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs text-gray-400 font-medium mb-1">Report includes:</p>
+            <div className="space-y-1">
+              <p className="text-xs text-gray-600">
+                ✅ Attendance per service (Male, Female, Children) with preacher
+              </p>
+              <p className="text-xs text-gray-600">
+                ✅ Full RCCG remittance table (National/Province/Area/Zone/Parish splits)
+              </p>
+              <p className="text-xs text-gray-600">
+                ✅ All offering categories with amounts
+              </p>
+              <p className="text-xs text-gray-600">
+                ✅ Parish details, signatures section
+              </p>
+              <p className="text-xs text-gray-600">
+                ✅ Distribution note
               </p>
             </div>
           </div>
