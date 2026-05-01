@@ -5,8 +5,8 @@ import DenominationInput from '../components/DenominationInput'
 import { getSessions, getOffering, upsertOffering } from '../lib/db'
 import { getSession } from '../lib/auth'
 import type { Session, Offering } from '../types'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+
+
 
 const SERVICE_LABELS: Record<string, string> = {
   sunday: 'Sunday Service',
@@ -183,13 +183,30 @@ export default function Offerings() {
     return 'N' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-  function downloadPDF() {
-    const church = getSession()
-    const parishName = church?.parish_name || 'CLOCK IT!'
-    const [year, m] = selectedMonth.split('-')
-    const monthName = getMonthLabel(Number(m), Number(year))
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-    const pageWidth = doc.internal.pageSize.getWidth()
+async function downloadPDF() {
+  const church = getSession()
+  if (!church) return
+  const [year, m] = selectedMonth.split('-')
+  const monthNum = Number(m) - 1
+
+  const offeringsMap: Record<string, any> = {}
+  const attendanceMap: Record<string, { male: number; female: number; children: number }> = {}
+
+  for (const { session, offering } of reportData) {
+    offeringsMap[session.id] = offering
+    attendanceMap[session.id] = { male: 0, female: 0, children: 0 }
+  }
+
+  const { generateMonthlyReport } = await import('../lib/generateReport')
+  await generateMonthlyReport(
+    reportData.map(r => r.session),
+    offeringsMap,
+    attendanceMap,
+    church,
+    monthNum,
+    Number(year)
+  )
+}
 
     // Header
     doc.setFillColor(0, 128, 0)
@@ -323,6 +340,7 @@ export default function Offerings() {
 
         const amt = Number(offering.crm || 0)
         const remit = amt * 0.60
+
         autoTable(doc, {
           startY: yPos,
           head: [['Category', 'Remit %', 'Collected', 'To Remit', 'Retained']],
