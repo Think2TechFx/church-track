@@ -6,8 +6,6 @@ import { getSessions, getOffering, upsertOffering } from '../lib/db'
 import { getSession } from '../lib/auth'
 import type { Session, Offering } from '../types'
 
-
-
 const SERVICE_LABELS: Record<string, string> = {
   sunday: 'Sunday Service',
   tuesday: 'Digging Deep',
@@ -65,7 +63,6 @@ const emptyOffering = {
   others_3: 0,
 }
 
-
 function getMonth(date: string) {
   return new Date(date).getMonth() + 1
 }
@@ -73,14 +70,9 @@ function getMonth(date: string) {
 function getMonthLabel(m: number, year: number) {
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'July', 'August', 'September', 'October', 'November', 'December',
   ]
   return `${months[m - 1]} ${year}`
-}
-
-function getWeekNumber(date: Date): number {
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
-  return Math.ceil((date.getDate() + firstDay.getDay()) / 7)
 }
 
 export default function Offerings() {
@@ -94,6 +86,7 @@ export default function Offerings() {
   const [reportData, setReportData] = useState<{ session: Session; offering: Offering }[]>([])
   const [selectedMonth, setSelectedMonth] = useState<string>('')
   const [months, setMonths] = useState<string[]>([])
+  const [downloading, setDownloading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -119,8 +112,6 @@ export default function Offerings() {
       setLoading(false)
     }
   }
-
-
 
   async function handleSave() {
     if (!selectedSession) return
@@ -153,6 +144,35 @@ export default function Offerings() {
     setShowReport(true)
   }
 
+  async function downloadPDF() {
+    const church = getSession()
+    if (!church) return
+    setDownloading(true)
+    try {
+      const [year, m] = selectedMonth.split('-')
+      const monthNum = Number(m) - 1
+      const offeringsMap: Record<string, any> = {}
+      const attendanceMap: Record<string, { male: number; female: number; children: number }> = {}
+      for (const { session, offering } of reportData) {
+        offeringsMap[session.id] = offering
+        attendanceMap[session.id] = { male: 0, female: 0, children: 0 }
+      }
+      const { generateMonthlyReport } = await import('../lib/generateReport')
+      await generateMonthlyReport(
+        reportData.map(r => r.session),
+        offeringsMap,
+        attendanceMap,
+        church,
+        monthNum,
+        Number(year)
+      )
+    } catch (e) {
+      console.error('PDF error:', e)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   function getActiveFields(type: string) {
     return type === 'sunday' ? SUNDAY_FIELDS : WEEKLY_FIELDS
   }
@@ -172,10 +192,12 @@ export default function Offerings() {
   }
 
   function getMonthTotals() {
-    const collected = reportData.reduce((a, { session, offering }) =>
-      a + (offering ? getTotalCollected(offering, session.type) : 0), 0)
-    const remitted = reportData.reduce((a, { session, offering }) =>
-      a + (offering ? getTotalRemittance(offering, session.type) : 0), 0)
+    const collected = reportData.reduce(
+      (a, { session, offering }) => a + (offering ? getTotalCollected(offering, session.type) : 0), 0
+    )
+    const remitted = reportData.reduce(
+      (a, { session, offering }) => a + (offering ? getTotalRemittance(offering, session.type) : 0), 0
+    )
     return { collected, remitted, retained: collected - remitted }
   }
 
@@ -183,236 +205,14 @@ export default function Offerings() {
     return 'N' + amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   }
 
-async function downloadPDF() {
-  const church = getSession()
-  if (!church) return
-  const [year, m] = selectedMonth.split('-')
-  const monthNum = Number(m) - 1
-
-  const offeringsMap: Record<string, any> = {}
-  const attendanceMap: Record<string, { male: number; female: number; children: number }> = {}
-
-  for (const { session, offering } of reportData) {
-    offeringsMap[session.id] = offering
-    attendanceMap[session.id] = { male: 0, female: 0, children: 0 }
-  }
-
-  const { generateMonthlyReport } = await import('../lib/generateReport')
-  await generateMonthlyReport(
-    reportData.map(r => r.session),
-    offeringsMap,
-    attendanceMap,
-    church,
-    monthNum,
-    Number(year)
-  )
-}
-
-    // Header
-    doc.setFillColor(0, 128, 0)
-    doc.rect(0, 0, pageWidth, 28, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.text('CLOCK IT! — Monthly Offering Report', pageWidth / 2, 9, { align: 'center' })
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`${parishName}  |  Zone: ${church?.zonal_hq || ''}  |  ${church?.province_hq || ''}`, pageWidth / 2, 16, { align: 'center' })
-    doc.text(`Pastor: ${church?.pastor_name || ''}  |  Period: ${monthName}`, pageWidth / 2, 22, { align: 'center' })
-    doc.setTextColor(0, 0, 0)
-
-    let yPos = 34
-
-    // Group by week
-    const weekMap: Record<number, { session: Session; offering: Offering }[]> = {}
-    reportData
-      .filter(({ session }) => session.type !== 'special')
-      .sort((a, b) => new Date(a.session.date).getTime() - new Date(b.session.date).getTime())
-      .forEach(({ session, offering }) => {
-        const w = getWeekNumber(new Date(session.date))
-        if (!weekMap[w]) weekMap[w] = []
-        weekMap[w].push({ session, offering })
-      })
-
-    const order = ['tuesday', 'thursday', 'sunday']
-
-    Object.entries(weekMap).forEach(([weekNum, items]) => {
-      const dates = items.map(i => new Date(i.session.date))
-      const minD = new Date(Math.min(...dates.map(d => d.getTime())))
-      const maxD = new Date(Math.max(...dates.map(d => d.getTime())))
-
-      if (yPos > 175) { doc.addPage(); yPos = 15 }
-
-      // Week header
-      doc.setFillColor(230, 255, 230)
-      doc.setDrawColor(0, 128, 0)
-      doc.rect(10, yPos, pageWidth - 20, 7, 'FD')
-      doc.setFontSize(9)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(0, 100, 0)
-      doc.text(
-        `WEEK ${weekNum}  (${minD.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })} - ${maxD.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })})`,
-        14, yPos + 5
-      )
-      doc.setTextColor(0, 0, 0)
-      yPos += 9
-
-      const sorted = [...items].sort((a, b) => order.indexOf(a.session.type) - order.indexOf(b.session.type))
-
-      sorted.forEach(({ session, offering }) => {
-        if (yPos > 175) { doc.addPage(); yPos = 15 }
-
-        const fields = getActiveFields(session.type)
-        const colors: Record<string, number[]> = {
-          sunday: [184, 134, 11],
-          tuesday: [0, 71, 171],
-          thursday: [75, 0, 130],
-        }
-        const c = colors[session.type] || [80, 80, 80]
-
-        doc.setFillColor(c[0], c[1], c[2])
-        doc.rect(10, yPos, pageWidth - 20, 7, 'F')
-        doc.setFontSize(8.5)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(255, 255, 255)
-        doc.text(
-          `${SERVICE_LABELS[session.type]}  |  Date: ${session.date}  |  Preacher: ${session.preacher || 'N/A'}`,
-          14, yPos + 5
-        )
-        doc.setTextColor(0, 0, 0)
-        yPos += 8
-
-        let sessionCollected = 0
-        let sessionRemitted = 0
-        const rows: string[][] = fields.map(field => {
-          const amt = Number(offering[field.key as keyof Offering] || 0)
-          const remit = amt * field.remittance
-          sessionCollected += amt
-          sessionRemitted += remit
-          return [field.label, `${(field.remittance * 100).toFixed(0)}%`, formatNaira(amt), formatNaira(remit), formatNaira(amt - remit)]
-        })
-
-        autoTable(doc, {
-          startY: yPos,
-          head: [['Category', 'Remit %', 'Collected', 'To Remit', 'Retained']],
-          body: rows,
-          foot: [['TOTAL', '', formatNaira(sessionCollected), formatNaira(sessionRemitted), formatNaira(sessionCollected - sessionRemitted)]],
-          margin: { left: 10, right: 10 },
-          styles: { fontSize: 7.5, cellPadding: 1.8 },
-          headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold' },
-          footStyles: { fillColor: [240, 240, 240], fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [250, 250, 250] },
-          columnStyles: {
-            0: { cellWidth: 65 },
-            1: { cellWidth: 22, halign: 'center' },
-            2: { cellWidth: 50, halign: 'right' },
-            3: { cellWidth: 50, halign: 'right' },
-            4: { cellWidth: 50, halign: 'right' },
-          },
-        })
-        yPos = (doc as any).lastAutoTable.finalY + 5
-      })
-    })
-
-    // Special programs
-    const specials = reportData.filter(({ session }) => session.type === 'special')
-    if (specials.length > 0) {
-      if (yPos > 170) { doc.addPage(); yPos = 15 }
-      doc.setFillColor(0, 120, 0)
-      doc.rect(10, yPos, pageWidth - 20, 7, 'F')
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(255, 255, 255)
-      doc.text('SPECIAL PROGRAMS', 14, yPos + 5)
-      doc.setTextColor(0, 0, 0)
-      yPos += 9
-
-      specials.forEach(({ session, offering }) => {
-        if (yPos > 175) { doc.addPage(); yPos = 15 }
-        doc.setFillColor(0, 160, 0)
-        doc.rect(10, yPos, pageWidth - 20, 7, 'F')
-        doc.setFontSize(8.5)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(255, 255, 255)
-        doc.text(`${session.special_name || 'Special'}  |  ${session.date}  |  Preacher: ${session.preacher || 'N/A'}`, 14, yPos + 5)
-        doc.setTextColor(0, 0, 0)
-        yPos += 8
-
-        const amt = Number(offering.crm || 0)
-        const remit = amt * 0.60
-
-        autoTable(doc, {
-          startY: yPos,
-          head: [['Category', 'Remit %', 'Collected', 'To Remit', 'Retained']],
-          body: [['CRM Offering', '60%', formatNaira(amt), formatNaira(remit), formatNaira(amt - remit)]],
-          margin: { left: 10, right: 10 },
-          styles: { fontSize: 7.5, cellPadding: 1.8 },
-          headStyles: { fillColor: [40, 40, 40], textColor: 255 },
-          columnStyles: {
-            0: { cellWidth: 65 },
-            1: { cellWidth: 22, halign: 'center' },
-            2: { cellWidth: 50, halign: 'right' },
-            3: { cellWidth: 50, halign: 'right' },
-            4: { cellWidth: 50, halign: 'right' },
-          },
-        })
-        yPos = (doc as any).lastAutoTable.finalY + 5
-      })
-    }
-
-    // Monthly summary
-    if (yPos > 170) { doc.addPage(); yPos = 15 }
-    const { collected, remitted, retained } = getMonthTotals()
-    doc.setFillColor(0, 80, 0)
-    doc.rect(10, yPos, pageWidth - 20, 7, 'F')
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 255, 255)
-    doc.text('MONTHLY SUMMARY', 14, yPos + 5)
-    doc.setTextColor(0, 0, 0)
-    yPos += 9
-
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Description', 'Amount']],
-      body: [
-        ['Total Collected', formatNaira(collected)],
-        ['Total to Remit', formatNaira(remitted)],
-        ['Parish Retains', formatNaira(retained)],
-      ],
-      margin: { left: 10, right: 10 },
-      styles: { fontSize: 10, cellPadding: 3 },
-      headStyles: { fillColor: [0, 100, 0], textColor: 255, fontStyle: 'bold' },
-      bodyStyles: { fontStyle: 'bold' },
-      columnStyles: {
-        0: { cellWidth: 120 },
-        1: { cellWidth: 80, halign: 'right' },
-      },
-    })
-
-    // Footer
-    const pageCount = doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i)
-      doc.setFontSize(7)
-      doc.setTextColor(150, 150, 150)
-      doc.text(
-        `CLOCK IT!  |  ${parishName}  |  Generated: ${new Date().toLocaleString('en-NG')}  |  Page ${i} of ${pageCount}`,
-        pageWidth / 2,
-        doc.internal.pageSize.getHeight() - 5,
-        { align: 'center' }
-      )
-    }
-
-    doc.save(`${parishName}-${monthName}-Offerings.pdf`)
-  }
-
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white">Offerings & Tithe</h2>
-          <p className="text-sm text-gray-400 mt-1">Select a service to record offerings · View monthly reports</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Select a service to record offerings · View monthly reports
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -500,7 +300,9 @@ async function downloadPDF() {
             </div>
             <div className="px-6 py-5">
               <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-5 ${
-                selectedSession.type === 'sunday' ? 'bg-yellow-400/10 text-yellow-400' : 'bg-blue-400/10 text-blue-400'
+                selectedSession.type === 'sunday'
+                  ? 'bg-yellow-400/10 text-yellow-400'
+                  : 'bg-blue-400/10 text-blue-400'
               }`}>
                 {selectedSession.type === 'sunday' ? '9 Offering Categories' : 'CRM Offering Only'}
               </div>
@@ -547,16 +349,20 @@ async function downloadPDF() {
                   ✝ {getSession()?.parish_name || 'CLOCK IT!'}
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Monthly Offering Report · {getMonthLabel(Number(selectedMonth.split('-')[1]), Number(selectedMonth.split('-')[0]))}
+                  Monthly Offering Report · {getMonthLabel(
+                    Number(selectedMonth.split('-')[1]),
+                    Number(selectedMonth.split('-')[0])
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={downloadPDF}
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm"
+                  disabled={downloading}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-sm"
                 >
                   <Download size={14} />
-                  Download PDF
+                  {downloading ? 'Generating...' : 'Download PDF'}
                 </button>
                 <button
                   onClick={() => setShowReport(false)}
@@ -568,7 +374,9 @@ async function downloadPDF() {
             </div>
 
             {reportData.length === 0 ? (
-              <p className="text-center text-gray-400 py-8">No offering records found for this month</p>
+              <p className="text-center text-gray-400 py-8">
+                No offering records found for this month
+              </p>
             ) : (
               <>
                 <div className="space-y-4 mb-6">
@@ -584,7 +392,9 @@ async function downloadPDF() {
                             <p className="text-sm font-semibold text-gray-900">
                               {session.special_name || SERVICE_LABELS[session.type]}
                             </p>
-                            <p className="text-xs text-gray-500">{session.date} {session.preacher && `· ${session.preacher}`}</p>
+                            <p className="text-xs text-gray-500">
+                              {session.date} {session.preacher && `· ${session.preacher}`}
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-400">Collected</p>
@@ -607,9 +417,15 @@ async function downloadPDF() {
                               return (
                                 <tr key={field.key} className="border-b border-gray-50">
                                   <td className="py-1.5 text-gray-600">{field.label}</td>
-                                  <td className="py-1.5 text-right text-gray-700">N{amt.toLocaleString()}</td>
-                                  <td className="py-1.5 text-right text-red-500">N{(amt * field.remittance).toLocaleString()}</td>
-                                  <td className="py-1.5 text-right text-green-600">N{(amt - amt * field.remittance).toLocaleString()}</td>
+                                  <td className="py-1.5 text-right text-gray-700">
+                                    N{amt.toLocaleString()}
+                                  </td>
+                                  <td className="py-1.5 text-right text-red-500">
+                                    N{(amt * field.remittance).toLocaleString()}
+                                  </td>
+                                  <td className="py-1.5 text-right text-green-600">
+                                    N{(amt - amt * field.remittance).toLocaleString()}
+                                  </td>
                                 </tr>
                               )
                             })}
@@ -617,9 +433,15 @@ async function downloadPDF() {
                           <tfoot>
                             <tr className="border-t border-gray-200">
                               <td className="py-2 font-semibold text-gray-800">Subtotal</td>
-                              <td className="py-2 text-right font-semibold text-gray-800">{formatNaira(collected)}</td>
-                              <td className="py-2 text-right font-semibold text-red-600">{formatNaira(remitted)}</td>
-                              <td className="py-2 text-right font-semibold text-green-700">{formatNaira(retained)}</td>
+                              <td className="py-2 text-right font-semibold text-gray-800">
+                                {formatNaira(collected)}
+                              </td>
+                              <td className="py-2 text-right font-semibold text-red-600">
+                                {formatNaira(remitted)}
+                              </td>
+                              <td className="py-2 text-right font-semibold text-green-700">
+                                {formatNaira(retained)}
+                              </td>
                             </tr>
                           </tfoot>
                         </table>
@@ -629,19 +451,27 @@ async function downloadPDF() {
                 </div>
 
                 <div className="bg-gray-900 rounded-xl p-4 mb-5">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Monthly Summary</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">
+                    Monthly Summary
+                  </p>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">Total Collected</p>
-                      <p className="text-base font-bold text-white">{formatNaira(getMonthTotals().collected)}</p>
+                      <p className="text-base font-bold text-white">
+                        {formatNaira(getMonthTotals().collected)}
+                      </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">Total Remitted</p>
-                      <p className="text-base font-bold text-red-400">{formatNaira(getMonthTotals().remitted)}</p>
+                      <p className="text-base font-bold text-red-400">
+                        {formatNaira(getMonthTotals().remitted)}
+                      </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-gray-500 mb-1">Church Retains</p>
-                      <p className="text-base font-bold text-green-400">{formatNaira(getMonthTotals().retained)}</p>
+                      <p className="text-base font-bold text-green-400">
+                        {formatNaira(getMonthTotals().retained)}
+                      </p>
                     </div>
                   </div>
                 </div>
