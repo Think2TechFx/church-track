@@ -63,7 +63,7 @@ function drawTable(
   let y = startY
   doc.setFontSize(fontSize)
 
-  doc.setFillColor(headerBg[0], headerBg[1], headerBg[2])
+doc.setFillColor(headerBg[0], headerBg[1], headerBg[2])
   doc.setTextColor(255, 255, 255)
   doc.setFont('helvetica', 'bold')
   let x = marginLeft
@@ -73,7 +73,7 @@ function drawTable(
     x += colWidths[i]
   })
   y += rowHeight
-
+  doc.setTextColor(0, 0, 0)
   doc.setTextColor(0, 0, 0)
   doc.setFont('helvetica', 'normal')
   rows.forEach((row, rowIdx) => {
@@ -88,7 +88,8 @@ function drawTable(
       doc.setFillColor(255, 255, 255)
     }
 
-    x = marginLeft
+x = marginLeft
+    doc.setTextColor(0, 0, 0)
     row.forEach((cell, i) => {
       doc.rect(x, y, colWidths[i], rowHeight, 'FD')
       const isRight = i > 0
@@ -97,6 +98,7 @@ function drawTable(
       x += colWidths[i]
     })
     doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 0, 0)
     y += rowHeight
   })
 
@@ -181,7 +183,7 @@ export async function generateMonthlyReport(
     doc.rect(marginLeft, yPos, pageWidth - marginLeft * 2, 6, 'F')
     doc.setFontSize(8)
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(0, 100, 0)
+    doc.setTextColor(0, 0, 0)
     doc.text(
       `WEEK ${weekNum}  (${minD.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })} - ${maxD.toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })})`,
       marginLeft + 2, yPos + 4
