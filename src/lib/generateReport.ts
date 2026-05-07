@@ -60,49 +60,97 @@ function drawTable(
   headerBg: [number, number, number] = [0, 100, 0],
   fontSize: number = 7
 ): number {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  let y = startY;
+  const pageHeight = doc.internal.pageSize.getHeight()
+  let y = startY
 
-  doc.setFontSize(fontSize);
-  
-  // Header
-  let x = marginLeft;
-  doc.setFillColor(...headerBg);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(fontSize)
+  doc.setLineWidth(0.1)
+
+  // ── STEP 1: Draw ALL background rectangles first ──
+  // Header backgrounds
+  let x = marginLeft
+  headers.forEach((_, i) => {
+    doc.setFillColor(headerBg[0], headerBg[1], headerBg[2])
+    doc.setDrawColor(headerBg[0], headerBg[1], headerBg[2])
+    doc.rect(x, y, colWidths[i], rowHeight, 'F')
+    x += colWidths[i]
+  })
+
+  // Row backgrounds
+  let rowY = y + rowHeight
+  rows.forEach((_, rowIdx) => {
+    if (rowY + rowHeight > pageHeight - 15) return
+    const isLastRow = rowIdx === rows.length - 1
+    if (isLastRow) {
+      doc.setFillColor(200, 230, 200)
+    } else if (rowIdx % 2 === 0) {
+      doc.setFillColor(248, 255, 248)
+    } else {
+      doc.setFillColor(255, 255, 255)
+    }
+    doc.setDrawColor(200, 200, 200)
+    x = marginLeft
+    colWidths.forEach((w) => {
+      doc.rect(x, rowY, w, rowHeight, 'F')
+      x += w
+    })
+    rowY += rowHeight
+  })
+
+  // ── STEP 2: Draw borders on top ──
+  doc.setDrawColor(180, 180, 180)
+  doc.setLineWidth(0.1)
+  let borderY = y
+  // Header border
+  x = marginLeft
+  headers.forEach((_, i) => {
+    doc.rect(x, borderY, colWidths[i], rowHeight, 'D')
+    x += colWidths[i]
+  })
+  borderY += rowHeight
+  // Row borders
+  rows.forEach((_, rowIdx) => {
+    if (borderY + rowHeight > pageHeight - 15) return
+    x = marginLeft
+    colWidths.forEach((w) => {
+      doc.rect(x, borderY, w, rowHeight, 'D')
+      x += w
+    })
+    borderY += rowHeight
+    rowIdx // suppress unused warning
+  })
+
+  // ── STEP 3: Draw ALL text on top last ──
+  // Header text
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  x = marginLeft
   headers.forEach((h, i) => {
-    doc.rect(x, y, colWidths[i], rowHeight, 'FD');
-    doc.text(h, x + colWidths[i] / 2, y + rowHeight - 2, { align: 'center' });
-    x += colWidths[i];
-  });
+    doc.text(h, x + colWidths[i] / 2, y + rowHeight - 1.5, { align: 'center' })
+    x += colWidths[i]
+  })
 
-  y += rowHeight;
-
-  // Data Rows
+  // Row text
+  let textY = y + rowHeight
   rows.forEach((row, rowIdx) => {
-    const isLastRow = rowIdx === rows.length - 1;
-    if (y + rowHeight > pageHeight - 15) return; // Basic overflow protection
-
-    const bgColor: [number, number, number] = isLastRow ? [200, 230, 200] : (rowIdx % 2 === 0 ? [248, 255, 248] : [255, 255, 255]);
-    
-    x = marginLeft;
-    doc.setFillColor(...bgColor);
-    doc.setTextColor(0, 0, 0);
-    doc.setDrawColor(180, 180, 180);
-    
+    if (textY + rowHeight > pageHeight - 15) return
+    const isLastRow = rowIdx === rows.length - 1
+    doc.setFont('helvetica', isLastRow ? 'bold' : 'normal')
+    doc.setTextColor(0, 0, 0)
+    x = marginLeft
     row.forEach((cell, i) => {
-      doc.setFont('helvetica', isLastRow ? 'bold' : 'normal');
-      doc.rect(x, y, colWidths[i], rowHeight, 'FD');
-      
-      const isNumeric = i > 0;
-      const textX = isNumeric ? x + colWidths[i] - 1 : x + 1.5;
-      doc.text(cell || '', textX, y + rowHeight - 2, { align: isNumeric ? 'right' : 'left' });
-      x += colWidths[i];
-    });
-    y += rowHeight;
-  });
+      if (cell && cell.trim() !== '') {
+        const isRight = i > 0
+        const textX = isRight ? x + colWidths[i] - 1 : x + 1.5
+        doc.text(cell, textX, textY + rowHeight - 1.5, { align: isRight ? 'right' : 'left' })
+      }
+      x += colWidths[i]
+    })
+    textY += rowHeight
+  })
 
-  return y;
+  doc.setTextColor(0, 0, 0)
+  return textY
 }
 
 export async function generateMonthlyReport(
