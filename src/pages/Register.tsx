@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { registerChurch, saveSession } from '../lib/auth'
+import { Eye, EyeOff } from 'lucide-react'
 
 const PROVINCES = ['Province 10']
 
@@ -17,8 +18,10 @@ export default function Register() {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-const [form, setForm] = useState({
+  const [form, setForm] = useState({
   country: 'Nigeria',
   state: '',
   church_type: 'parish',
@@ -316,24 +319,42 @@ const [form, setForm] = useState({
 
               <div>
                 <label className={labelClass}>Password *</label>
-                <input
-                  type="password"
-                  placeholder="Min. 6 characters"
-                  value={form.password}
-                  onChange={(e) => update('password', e.target.value)}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Min. 6 characters"
+                    value={form.password}
+                    onChange={(e) => update('password', e.target.value)}
+                    className={inputClass + ' pr-10'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className={labelClass}>Confirm Password *</label>
-                <input
-                  type="password"
-                  placeholder="Repeat password"
-                  value={form.confirm_password}
-                  onChange={(e) => update('confirm_password', e.target.value)}
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Repeat password"
+                    value={form.confirm_password}
+                    onChange={(e) => update('confirm_password', e.target.value)}
+                    className={inputClass + ' pr-10'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3 mt-2">
