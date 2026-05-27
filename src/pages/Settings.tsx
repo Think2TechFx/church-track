@@ -1,25 +1,85 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSession, clearSession } from '../lib/auth'
 import type { ChurchUser } from '../lib/auth'
 import { supabase } from '../lib/supabase'
-import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Trash2, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function Settings() {
   const navigate = useNavigate()
   const church = getSession() as ChurchUser
   const [showDelete, setShowDelete] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  // Change password states
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPasswordChange, setNewPasswordChange] = useState('')
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false)
+  const [showNewPwd, setShowNewPwd] = useState(false)
+  const [changePwdSuccess, setChangePwdSuccess] = useState('')
+
+  // Transfer states
   const [transferForm, setTransferForm] = useState({
     new_pastor_name: '',
     new_pastor_email: '',
     new_password: '',
   })
+  const [showTransferPwd, setShowTransferPwd] = useState(false)
   const [transferring, setTransferring] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+
+  async function handleChangePassword() {
+    if (!currentPassword || !newPasswordChange) {
+      setError('Please fill both password fields')
+      return
+    }
+    if (newPasswordChange.length < 6) {
+      setError('New password must be at least 6 characters')
+      return
+    }
+    setSaving(true)
+    setError('')
+    setChangePwdSuccess('')
+    try {
+      // Verify current password
+      const current_hash = btoa(currentPassword)
+      const { data: match } = await supabase
+        .from('churches')
+        .select('id')
+        .eq('id', church.id)
+        .eq('password_hash', current_hash)
+        .maybeSingle()
+
+      if (!match) {
+        setError('Current password is incorrect')
+        return
+      }
+
+      // Update to new password
+      const new_hash = btoa(newPasswordChange)
+      await supabase
+        .from('churches')
+        .update({ password_hash: new_hash })
+        .eq('id', church.id)
+
+      setChangePwdSuccess('Password updated successfully!')
+      setCurrentPassword('')
+      setNewPasswordChange('')
+      setTimeout(() => {
+        setShowChangePassword(false)
+        setChangePwdSuccess('')
+      }, 2000)
+    } catch (e: any) {
+      setError(e.message || 'Something went wrong')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function handleDeleteAccount() {
     if (deleteConfirm !== church.parish_name) {
@@ -28,7 +88,6 @@ export default function Settings() {
     }
     setDeleting(true)
     try {
-      // Soft delete — keeps data for audit
       await supabase
         .from('churches')
         .update({
@@ -36,7 +95,6 @@ export default function Settings() {
           deleted_by: church.pastor_email,
         })
         .eq('id', church.id)
-
       clearSession()
       navigate('/welcome')
     } catch (e: any) {
@@ -54,7 +112,6 @@ export default function Settings() {
     setTransferring(true)
     setError('')
     try {
-      // Save transfer record
       await supabase.from('church_transfers').insert({
         church_id: church.id,
         old_pastor_name: church.pastor_name,
@@ -63,8 +120,6 @@ export default function Settings() {
         new_pastor_email: transferForm.new_pastor_email,
         notes: 'Account transfer via Settings',
       })
-
-      // Update church record
       const new_password_hash = btoa(transferForm.new_password)
       await supabase
         .from('churches')
@@ -74,9 +129,8 @@ export default function Settings() {
           password_hash: new_password_hash,
         })
         .eq('id', church.id)
-
       clearSession()
-      setSuccess('Account transferred successfully! Please login with the new pastor credentials.')
+      setSuccess('Account transferred! Please login with new pastor credentials.')
       setTimeout(() => navigate('/login'), 3000)
     } catch (e: any) {
       setError(e.message || 'Something went wrong')
@@ -126,6 +180,90 @@ export default function Settings() {
         </div>
       )}
 
+      {/* Change Password */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
+        <div className="flex items-center gap-3 mb-2">
+          <Lock size={18} className="text-yellow-400" />
+          <h3 className="text-white font-semibold">Change Password</h3>
+        </div>
+        <p className="text-sm text-gray-400 mb-4">Update your login password.</p>
+        {!showChangePassword ? (
+          <button
+            onClick={() => setShowChangePassword(true)}
+            className="bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/20 text-yellow-400 font-medium px-4 py-2.5 rounded-lg text-sm transition-all"
+          >
+            Change Password
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block">Current Password</label>
+              <div className="relative">
+                <input
+                  type={showCurrentPwd ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPwd(!showCurrentPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                >
+                  {showCurrentPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1.5 block">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPwd ? 'text' : 'password'}
+                  placeholder="Min. 6 characters"
+                  value={newPasswordChange}
+                  onChange={(e) => setNewPasswordChange(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPwd(!showNewPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                >
+                  {showNewPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
+            </div>
+            {changePwdSuccess && (
+              <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm px-4 py-3 rounded-lg">
+                {changePwdSuccess}
+              </div>
+            )}
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => {
+                  setShowChangePassword(false)
+                  setCurrentPassword('')
+                  setNewPasswordChange('')
+                  setError('')
+                  setChangePwdSuccess('')
+                }}
+                className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleChangePassword}
+                disabled={saving}
+                className="flex-1 bg-yellow-500 hover:bg-yellow-400 disabled:opacity-50 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-all"
+              >
+                {saving ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Transfer Account */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-6">
         <div className="flex items-center gap-3 mb-2">
@@ -133,7 +271,7 @@ export default function Settings() {
           <h3 className="text-white font-semibold">Transfer Account</h3>
         </div>
         <p className="text-sm text-gray-400 mb-4">
-          Transfer this account to a new pastor. The old pastor's data will be kept for records.
+          Transfer this account to a new pastor.
         </p>
         {!showTransfer ? (
           <button
@@ -166,13 +304,22 @@ export default function Settings() {
             </div>
             <div>
               <label className="text-xs text-gray-400 mb-1.5 block">New Password *</label>
-              <input
-                type="password"
-                placeholder="Create a new password"
-                value={transferForm.new_password}
-                onChange={(e) => setTransferForm({ ...transferForm, new_password: e.target.value })}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-              />
+              <div className="relative">
+                <input
+                  type={showTransferPwd ? 'text' : 'password'}
+                  placeholder="Create a new password"
+                  value={transferForm.new_password}
+                  onChange={(e) => setTransferForm({ ...transferForm, new_password: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 pr-10 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowTransferPwd(!showTransferPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                >
+                  {showTransferPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+              </div>
             </div>
             <div className="flex gap-3 mt-2">
               <button
