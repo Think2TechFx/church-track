@@ -417,10 +417,13 @@ async function handleEndService(session: Session) {
               </table>
             )}
 
-            {/* Non-attendees list */}
+            {/* Absent Members list */}
             <h3 className="text-sm font-semibold text-gray-700 mb-3 mt-6">
-              Members Not in Service ({reportNonAttendees.length})
+              Members Absent from Service ({reportNonAttendees.length})
             </h3>
+            <p className="text-xs text-gray-500 mb-3">
+              Use the phone numbers below to follow up with absent members.
+            </p>
             {reportNonAttendees.length === 0 ? (
               <p className="text-sm text-gray-400 text-center py-4">All active members attended</p>
             ) : (
@@ -437,7 +440,7 @@ async function handleEndService(session: Session) {
                     <tr key={member.id} className="border-b border-gray-100">
                       <td className="py-2 text-gray-400">{i + 1}</td>
                       <td className="py-2 text-gray-900 font-medium">{member.name}</td>
-                      <td className="py-2 text-gray-500">{member.phone}</td>
+                      <td className="py-2 text-gray-500">{member.phone || 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>
