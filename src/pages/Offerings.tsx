@@ -61,6 +61,7 @@ const emptyOffering = {
   others_1: 0,
   others_2: 0,
   others_3: 0,
+  bank_transfer: 0,
 }
 
 function getMonth(date: string) {
@@ -158,10 +159,12 @@ export default function Offerings() {
         attendanceMap[session.id] = { male: 0, female: 0, children: 0 }
       }
       const { generateMonthlyReport } = await import('../lib/generateReport')
+      const absentMap: Record<string, { name: string; phone: string }[]> = {}
       await generateMonthlyReport(
         reportData.map(r => r.session),
         offeringsMap,
         attendanceMap,
+        absentMap,
         church,
         monthNum,
         Number(year)
@@ -179,12 +182,16 @@ export default function Offerings() {
 
   function getTotalCollected(f: any, type: string) {
     const fields = getActiveFields(type)
-    return fields.reduce((a, field) => a + Number(f[field.key] || 0), 0)
+    const offeringTotal = fields.reduce((a, field) => a + Number(f[field.key] || 0), 0)
+    const bankTransfer = Number(f.bank_transfer || 0)
+    return offeringTotal + bankTransfer
   }
 
   function getTotalRemittance(f: any, type: string) {
     const fields = getActiveFields(type)
-    return fields.reduce((a, field) => a + Number(f[field.key] || 0) * field.remittance, 0)
+    const offeringRemittance = fields.reduce((a, field) => a + Number(f[field.key] || 0) * field.remittance, 0)
+    const bankTransfer = Number(f.bank_transfer || 0) // Bank transfers are 100% retained by church
+    return offeringRemittance + bankTransfer
   }
 
   function getTotalRetained(f: any, type: string) {
@@ -317,6 +324,23 @@ export default function Offerings() {
                     showRemittance={false}
                   />
                 ))}
+                
+                {/* Bank Transfer Field */}
+                <div className="border-t border-gray-700 pt-3 mt-3">
+                  <label className="text-xs text-gray-400 mb-1.5 block font-medium">Bank Transfer / Mobile Money</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">₦</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="Enter amount transferred"
+                      value={form.bank_transfer || 0}
+                      onChange={(e) => setForm({ ...form, bank_transfer: parseFloat(e.target.value) || 0 })}
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400/50"
+                    />
+                  </div>
+                </div>
               </div>
               <div className="bg-gray-800 rounded-xl p-4 mb-5">
                 <div className="flex justify-between text-sm">
@@ -429,6 +453,20 @@ export default function Offerings() {
                                 </tr>
                               )
                             })}
+                            {Number(offering.bank_transfer || 0) > 0 && (
+                              <tr className="border-b border-gray-50 bg-blue-50">
+                                <td className="py-1.5 text-gray-600 font-medium">Bank Transfer / Mobile Money</td>
+                                <td className="py-1.5 text-right text-gray-700 font-medium">
+                                  N{Number(offering.bank_transfer || 0).toLocaleString()}
+                                </td>
+                                <td className="py-1.5 text-right text-blue-500 font-medium">
+                                  N{Number(offering.bank_transfer || 0).toLocaleString()}
+                                </td>
+                                <td className="py-1.5 text-right text-gray-400">
+                                  —
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                           <tfoot>
                             <tr className="border-t border-gray-200">

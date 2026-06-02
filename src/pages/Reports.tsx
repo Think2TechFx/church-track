@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getSessions, getOffering } from '../lib/db'
+import { getSessions, getOffering, getMembers } from '../lib/db'
 import { getSession } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { generateMonthlyReport } from '../lib/generateReport'
@@ -53,6 +53,10 @@ export default function Reports() {
     try {
       const offeringsMap: Record<string, Offering> = {}
       const attendanceMap: Record<string, { male: number; female: number; children: number }> = {}
+      const absentMap: Record<string, { name: string; phone: string }[]> = {}
+
+      const allMembers = await getMembers()
+      const activeMembers = allMembers.filter((member) => member.active)
 
       for (const session of monthSessions) {
         const offering = await getOffering(session.id)
@@ -60,19 +64,25 @@ export default function Reports() {
 
         const { data: att } = await supabase
           .from('attendance')
-          .select('*, members(sex)')
+          .select('member_id, members(sex)')
           .eq('session_id', session.id)
 
-        const male = att?.filter((a: any) => a.members?.sex === 'Male').length || 0
-        const female = att?.filter((a: any) => a.members?.sex === 'Female').length || 0
-        const children = att?.filter((a: any) => a.members?.sex === 'Children').length || 0
+        const attendeesIds = new Set((att || []).map((a: any) => a.member_id))
+        const male = (att || []).filter((a: any) => a.members?.sex === 'Male').length || 0
+        const female = (att || []).filter((a: any) => a.members?.sex === 'Female').length || 0
+        const children = (att || []).filter((a: any) => a.members?.sex === 'Children').length || 0
         attendanceMap[session.id] = { male, female, children }
+
+        absentMap[session.id] = activeMembers
+          .filter((member) => !attendeesIds.has(member.id))
+          .map((member) => ({ name: member.name, phone: member.phone || 'N/A' }))
       }
 
       await generateMonthlyReport(
         sessions,
         offeringsMap,
         attendanceMap,
+        absentMap,
         church,
         selectedMonth,
         selectedYear
@@ -225,6 +235,9 @@ export default function Reports() {
               </p>
               <p className="text-xs text-gray-600">
                 ✅ All offering categories with amounts
+              </p>
+              <p className="text-xs text-gray-600">
+                ✅ Absent member list with phone numbers for follow-up
               </p>
               <p className="text-xs text-gray-600">
                 ✅ Parish details, signatures section

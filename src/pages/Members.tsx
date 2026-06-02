@@ -161,7 +161,7 @@ export default function Members() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2.5 rounded-lg text-sm transition-all"
+          className="flex items-center gap-2 bg-primary-600 hover:bg-yellow-400 text-white hover:text-gray-950 px-4 py-2.5 rounded-lg text-sm transition-all font-medium"
         >
           <UserPlus size={16} />
           Add Member
@@ -411,15 +411,42 @@ export default function Members() {
                 </div>
               )}
 
-              {/* Date of Birth */}
+              {/* Date of Birth - Month & Day only */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">Date of Birth</label>
-                <input
-                  type="date"
-                  value={form.date_of_birth}
-                  onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/50"
-                />
+                <label className="text-xs text-gray-400 mb-1.5 block">Birth Month & Day</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={form.date_of_birth ? new Date(form.date_of_birth).getMonth() : ''}
+                    onChange={(e) => {
+                      if (!e.target.value) return
+                      const month = parseInt(e.target.value)
+                      const day = form.date_of_birth ? new Date(form.date_of_birth).getDate() : 1
+                      const dateStr = `2000-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      setForm({ ...form, date_of_birth: dateStr })
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/50"
+                  >
+                    <option value="">Select Month</option>
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, i) => (
+                      <option key={m} value={i}>{m}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="Day"
+                    value={form.date_of_birth ? new Date(form.date_of_birth).getDate() : ''}
+                    onChange={(e) => {
+                      if (!form.date_of_birth) return
+                      const month = new Date(form.date_of_birth).getMonth()
+                      const day = parseInt(e.target.value) || 1
+                      const dateStr = `2000-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      setForm({ ...form, date_of_birth: dateStr })
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400/50"
+                  />
+                </div>
               </div>
 
             </div>
@@ -561,15 +588,42 @@ export default function Members() {
                 </div>
               )}
 
-              {/* Date of Birth */}
+              {/* Date of Birth - Month & Day only */}
               <div>
-                <label className="text-xs text-gray-400 mb-1.5 block">Date of Birth</label>
-                <input
-                  type="date"
-                  value={editForm.date_of_birth || ''}
-                  onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/50"
-                />
+                <label className="text-xs text-gray-400 mb-1.5 block">Birth Month & Day</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={editForm.date_of_birth ? new Date(editForm.date_of_birth).getMonth() : ''}
+                    onChange={(e) => {
+                      if (!e.target.value) return
+                      const month = parseInt(e.target.value)
+                      const day = editForm.date_of_birth ? new Date(editForm.date_of_birth).getDate() : 1
+                      const dateStr = `2000-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      setEditForm({ ...editForm, date_of_birth: dateStr })
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-400/50"
+                  >
+                    <option value="">Select Month</option>
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((m, i) => (
+                      <option key={m} value={i}>{m}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="Day"
+                    value={editForm.date_of_birth ? new Date(editForm.date_of_birth).getDate() : ''}
+                    onChange={(e) => {
+                      if (!editForm.date_of_birth) return
+                      const month = new Date(editForm.date_of_birth).getMonth()
+                      const day = parseInt(e.target.value) || 1
+                      const dateStr = `2000-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                      setEditForm({ ...editForm, date_of_birth: dateStr })
+                    }}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-400/50"
+                  />
+                </div>
               </div>
 
             </div>

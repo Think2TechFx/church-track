@@ -69,5 +69,6 @@ export interface Offering {
   others_1: number
   others_2: number
   others_3: number
+  bank_transfer: number
   recorded_at: string
 }

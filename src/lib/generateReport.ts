@@ -157,6 +157,7 @@ export async function generateMonthlyReport(
   allSessions: Session[],
   offerings: Record<string, Offering>,
   attendance: Record<string, { male: number; female: number; children: number }>,
+  absentMembers: Record<string, { name: string; phone: string }[]>,
   church: ChurchUser,
   month: number,
   year: number
@@ -228,7 +229,34 @@ export async function generateMonthlyReport(
     yPos = drawTable(doc, attHeaders, attRows, yPos, attColWidths, marginLeft) + 5;
   }
 
-  // --- PAGE 2: REMITTANCE ---
+  // --- PAGE 2: ABSENT MEMBERS ---
+  doc.addPage();
+  drawPageHeader(`ABSENT MEMBERS REPORT — ${monthName.toUpperCase()} ${year}`);
+  yPos = 35;
+
+  const absentHeaders = ['SERVICE', 'MEMBER NAME', 'PHONE'];
+  const absentColWidths = [65, 85, 40];
+  const absentRows: string[][] = [];
+
+  monthSessions.forEach((session) => {
+    const absents = absentMembers[session.id] || [];
+    const serviceLabel = session.type === 'special'
+      ? session.special_name || 'Special'
+      : serviceNames[session.type] || session.type;
+
+    absents.forEach((member) => {
+      absentRows.push([serviceLabel, member.name, member.phone || 'N/A']);
+    });
+  });
+
+  if (absentRows.length === 0) {
+    doc.setFontSize(9);
+    doc.text('No absent members recorded for this period.', marginLeft, yPos);
+  } else {
+    yPos = drawTable(doc, absentHeaders, absentRows, yPos, absentColWidths, marginLeft, 6, [0, 80, 0], 7) + 5;
+  }
+
+  // --- PAGE 3: REMITTANCE ---
   doc.addPage();
   drawPageHeader(`PARISH REMITTANCE SUMMARY — ${monthName.toUpperCase()} ${year}`);
   yPos = 35;
