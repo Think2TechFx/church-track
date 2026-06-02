@@ -73,6 +73,7 @@ const emptyOffering = {
   others_1: 0,
   others_2: 0,
   others_3: 0,
+  bank_transfer: 0,
 }
 
 export default function OfferingEntry() {
@@ -118,6 +119,7 @@ export default function OfferingEntry() {
         others_1: existing.others_1 || 0,
         others_2: existing.others_2 || 0,
         others_3: existing.others_3 || 0,
+        bank_transfer: existing.bank_transfer || 0,
       })
     }
   }
